@@ -5,23 +5,32 @@ import java.util.List;
 public class ChatRequest {
     private String prompt;
     private String model;
-    private List<Message> messages;  // ✅ Add support for multiple messages
+    private List<Message> messages;
+    private Boolean useRag;  // Added useRag flag to control RAG usage
 
-    // ✅ Default constructor (needed for Jackson deserialization)
+    // Default constructor (needed for Jackson deserialization)
     public ChatRequest() {}
 
-    // ✅ Constructor for direct text input
+    // Constructor for direct text input
     public ChatRequest(String prompt, String model) {
         this.prompt = prompt;
         this.model = model;
     }
 
-    // ✅ Constructor for handling messages
+    // Constructor for handling messages
     public ChatRequest(List<Message> messages) {
         this.messages = messages;
     }
 
-    // ✅ Getter & Setter Methods
+    // Full constructor with all fields
+    public ChatRequest(String prompt, String model, List<Message> messages, Boolean useRag) {
+        this.prompt = prompt;
+        this.model = model;
+        this.messages = messages;
+        this.useRag = useRag;
+    }
+
+    // Getter & Setter Methods
     public String getPrompt() {
         return prompt;
     }
@@ -44,5 +53,13 @@ public class ChatRequest {
 
     public void setMessages(List<Message> messages) {
         this.messages = messages;
+    }
+
+    public Boolean getUseRag() {
+        return useRag;
+    }
+
+    public void setUseRag(Boolean useRag) {
+        this.useRag = useRag;
     }
 }

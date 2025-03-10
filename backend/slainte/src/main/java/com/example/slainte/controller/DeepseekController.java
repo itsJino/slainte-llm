@@ -9,8 +9,7 @@ import com.example.slainte.service.DeepseekChatClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/llm")
@@ -35,13 +34,50 @@ public class DeepseekController {
             Message latestUserMessage = extractLatestUserMessage(chatRequest);
             logger.info("Processing chat request: {}", latestUserMessage.getContent());
             
-            // Step 1: Retrieve relevant knowledge from ChromaDB (Vector Search)
-            String retrievedInfo = knowledgeBaseService.search(latestUserMessage.getContent());
+            // Check if this is a symptom assessment start
+            boolean isStartingAssessment = false;
+            if (chatRequest.getMessages() != null) {
+                Optional<Message> startAssessmentMsg = chatRequest.getMessages().stream()
+                    .filter(m -> "system".equals(m.getRole()) && 
+                           m.getContent() != null && 
+                           m.getContent().contains("start assessment"))
+                    .findFirst();
+                
+                if (startAssessmentMsg.isPresent()) {
+                    isStartingAssessment = true;
+                    logger.info("Detected start of symptom assessment flow");
+                }
+            }
             
-            // Step 2: Create an AI-friendly prompt
-            String augmentedPrompt = formatPrompt(retrievedInfo, latestUserMessage.getContent());
+            // Check if the useRag flag is present and false
+            boolean useRag = true; // Default to true for backward compatibility
+            if (chatRequest.getUseRag() != null) {
+                useRag = chatRequest.getUseRag();
+            }
             
-            // Step 3: Send the augmented prompt to the AI model
+            // Force useRag to false if this is a start assessment message
+            if (isStartingAssessment) {
+                useRag = false;
+                logger.info("Forcing RAG off for symptom assessment start");
+            }
+            
+            // Log whether RAG is being used for this request
+            logger.info("RAG usage for this request: {}", useRag ? "ENABLED" : "DISABLED");
+            
+            String augmentedPrompt;
+            
+            if (useRag) {
+                // Only retrieve information from ChromaDB if useRag is true
+                String retrievedInfo = knowledgeBaseService.search(latestUserMessage.getContent());
+                augmentedPrompt = formatPrompt(retrievedInfo, latestUserMessage.getContent());
+                logger.info("Using RAG - retrieved context length: {}", retrievedInfo.length());
+            } else {
+                // Skip RAG retrieval entirely
+                augmentedPrompt = latestUserMessage.getContent();
+                logger.info("Skipping RAG retrieval as requested");
+            }
+            
+            // Send the prompt to the AI model
             String response = chatClient.prompt(augmentedPrompt);
             
             long endTime = System.currentTimeMillis();

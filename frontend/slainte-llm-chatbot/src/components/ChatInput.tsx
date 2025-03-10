@@ -60,7 +60,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
           />
           <button
-            className="absolute top-1/2 -translate-y-1/2 right-3 p-1 rounded-md"
+            className="absolute top-1/2 -translate-y-1/2 right-3 p-1 rounded-md bg-white text-black"
             onClick={handleSendMessage}
           >
             <ArrowUpIcon />

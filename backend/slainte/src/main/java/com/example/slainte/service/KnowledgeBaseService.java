@@ -43,7 +43,7 @@ public class KnowledgeBaseService {
             logger.info("Generated embedding of size: {}", queryEmbedding.size());
             
             // Query ChromaDB
-            String result = chromaDBService.queryDatabase(queryEmbedding, 5);
+            String result = chromaDBService.queryDatabase(queryEmbedding, 8);
             
             // Store the retrieved context
             this.lastRetrievedContext = result;

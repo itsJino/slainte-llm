@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 public class ChromaDBService {
     private static final Logger logger = LoggerFactory.getLogger(ChromaDBService.class);
     
-    private final String CHROMADB_URL = "http://localhost:8000/api/v1/collections/00795f43-3926-4278-a8bc-45ab422ae56e/query";
+    private final String CHROMADB_URL = "http://localhost:8000/api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query";
     private final RestTemplate restTemplate;
 
     public ChromaDBService(RestTemplate restTemplate) {
