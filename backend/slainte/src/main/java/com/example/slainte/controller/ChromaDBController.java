@@ -9,12 +9,12 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/test")
-public class ChromaDBTestController {
+public class ChromaDBController {
 
     private final ChromaDBService chromaDBService;
     private final EmbeddingService embeddingService;
 
-    public ChromaDBTestController(ChromaDBService chromaDBService, EmbeddingService embeddingService) {
+    public ChromaDBController(ChromaDBService chromaDBService, EmbeddingService embeddingService) {
         this.chromaDBService = chromaDBService;
         this.embeddingService = embeddingService;
     }
