@@ -8,7 +8,7 @@ import ChatMessage from "@/components/ChatMessage";
 import ChatButton from "@/components/ChatButton";
 import ChatMenu from "@/components/ChatMenu";
 import SavePDFButton from "@/components/SavePDFButton";
-import useAutoScroll from "@/hooks/useAutoScroll"; 
+import useAutoScroll from "@/hooks/useAutoScroll";
 import { getResponse } from "@/lib/api";
 import { Message } from "@/models/message";
 
@@ -71,7 +71,7 @@ const InfoOption: React.FC<InfoOptionProps> = ({ title, onClick, isSelected = fa
         ${isSelected
           ? "border-[#006354] bg-[#006354] text-white"
           : "border-gray-200 bg-white text-[#006354] hover:border-[#006354]"} 
-        transition-colors mb-3 font-medium`}
+        transition-colors mb-3 font-medium z-10`} // Added z-10 for proper stacking
     >
       {title}
     </button>
@@ -1124,67 +1124,70 @@ Please provide:
         ) : (
           /* Chat Interface (either Info Options or Regular Chat) */
           <div className="flex-1 flex flex-col overflow-hidden">
+            // Update this section in your Chatbot component
             {showInfoOptions ? (
               /* General Information Options */
-              <div className="flex-1 overflow-auto bg-gray-50" ref={messagesEndRef}>
-                {/* Show message content */}
-                {visibleMessages.length > 0 && (
-                  <div className="p-4">
-                    <ChatMessage
-                      messages={visibleMessages}
-                      isLoading={isLoading}
-                    />
-                  </div>
-                )}
+              <div className="flex-1 flex flex-col overflow-auto bg-gray-50"> {/* Using flex-col to stack elements */}
+                {/* Message container - takes as much space as needed */}
+                <div className="flex-grow overflow-auto p-4" ref={messagesEndRef}>
+                  <ChatMessage
+                    messages={visibleMessages}
+                    isLoading={isLoading}
+                    isFullScreen={isFullScreen}
+                  />
+                </div>
 
-                {/* Show category selection if no category selected */}
-                {!infoCategory ? (
-                  <div className="p-4 border-t border-gray-200">
-                    <h2 className="text-xl font-semibold text-[#006354] mb-4">Information Categories</h2>
-                    <div className="space-y-2">
-                      <InfoOption
-                        title="Healthcare Services"
-                        onClick={() => handleCategorySelect('healthcare')}
-                      />
-                      <InfoOption
-                        title="COVID-19 Information"
-                        onClick={() => handleCategorySelect('covid')}
-                      />
-                      <InfoOption
-                        title="Schemes and Benefits"
-                        onClick={() => handleCategorySelect('benefits')}
-                      />
-                      <InfoOption
-                        title="Other Health Services"
-                        onClick={() => handleCategorySelect('services')}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  /* Show specific options for selected category */
-                  <div className="p-4 border-t border-gray-200">
-                    <h2 className="text-xl font-semibold text-[#006354] mb-4">
-                      {infoCategories[infoCategory as keyof typeof infoCategories].title}
-                    </h2>
-                    <div className="space-y-2">
-                      {infoCategories[infoCategory as keyof typeof infoCategories].options.map(option => (
+                {/* Options container - fixed at the bottom with auto height */}
+                <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-gray-50">
+                  {!infoCategory ? (
+                    <div>
+                      <h2 className="text-xl font-semibold text-[#006354] mb-4">Information Categories</h2>
+                      <div className="space-y-2">
                         <InfoOption
-                          key={option.id}
-                          title={option.title}
-                          onClick={() => handleOptionSelect(option.id)}
+                          title="Healthcare Services"
+                          onClick={() => handleCategorySelect('healthcare')}
                         />
-                      ))}
+                        <InfoOption
+                          title="COVID-19 Information"
+                          onClick={() => handleCategorySelect('covid')}
+                        />
+                        <InfoOption
+                          title="Schemes and Benefits"
+                          onClick={() => handleCategorySelect('benefits')}
+                        />
+                        <InfoOption
+                          title="Other Health Services"
+                          onClick={() => handleCategorySelect('services')}
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    /* Show specific options for selected category */
+                    <div>
+                      <h2 className="text-xl font-semibold text-[#006354] mb-4">
+                        {infoCategories[infoCategory as keyof typeof infoCategories].title}
+                      </h2>
+                      <div className="space-y-2">
+                        {infoCategories[infoCategory as keyof typeof infoCategories].options.map(option => (
+                          <InfoOption
+                            key={option.id}
+                            title={option.title}
+                            onClick={() => handleOptionSelect(option.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
-              /* Regular Chat Interface */
+              // Regular chat interface stays the same
               <>
                 <div className="flex-1 overflow-auto p-2" ref={messagesEndRef}>
                   <ChatMessage
                     messages={visibleMessages}
                     isLoading={isLoading}
+                    isFullScreen={isFullScreen}
                   />
                 </div>
 
@@ -1198,6 +1201,7 @@ Please provide:
                 </div>
               </>
             )}
+
           </div>
         )}
       </div>

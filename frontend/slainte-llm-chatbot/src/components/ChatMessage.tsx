@@ -8,12 +8,13 @@ import { Message } from "@/models/message";
 interface ChatMessagesProps {
   messages: Message[];
   isLoading?: boolean;
+  isFullScreen?: boolean;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading = false }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFullScreen }) => {
   const scrollContentRef = useAutoScroll();
-  
-  // Define a custom component for all text elements to control their size
+
+  // Enhanced custom components for better readability and accessibility
   const components = {
     p: (props: any) => <p className="text-lg leading-relaxed mb-1" {...props} />,
     h1: (props: any) => <h1 className="text-lg font-semibold mt-2 mb-1" {...props} />,
@@ -26,9 +27,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading = false
     code: (props: any) => <code className="text-[0.7rem] bg-black bg-opacity-20 px-1 rounded" {...props} />,
     pre: (props: any) => <pre className="text-[0.7rem] bg-black bg-opacity-20 p-2 rounded my-1 overflow-x-auto" {...props.children} />
   };
-  
+
   return (
-    <div ref={scrollContentRef} className="space-y-4 max-h-[400px]">
+    // Remove fixed max-height to allow content to expand as needed
+    <div ref={scrollContentRef} className="space-y-4 w-full">
       {messages.map(({ role, content, loading, error, timestamp }, idx) => (
         <div
           key={idx}
@@ -36,7 +38,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading = false
         >
           {/* Assistant Message */}
           {role === "ai" && (
-            <div className="flex items-start space-x-2 max-w-[95%]">
+            <div className={`flex items-start space-x-2 ${isFullScreen ? "max-w-[60%]" : "max-w-[95%]"}`}>
               <img className="h-[30px] w-[30px] shrink-0 rounded-full" src={HSELogo} alt="HSE logo" />
               <div className="flex flex-col bg-[#006354] text-white p-3 rounded-lg shadow-md">
                 {loading ? (
@@ -48,7 +50,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading = false
               </div>
             </div>
           )}
-
           {/* User Message */}
           {role === "user" && (
             <div className="flex items-end space-x-2 max-w-[80%]">
@@ -58,7 +59,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading = false
               </div>
             </div>
           )}
-
           {/* Error Message */}
           {error && (
             <div className="flex items-center gap-1 text-xs text-error-red mt-2">

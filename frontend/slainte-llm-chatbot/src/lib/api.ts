@@ -132,7 +132,7 @@ export const getResponse = async (messages: Message[], useRag: boolean = false):
     // Send request to backend API with the useRag flag
     const response = await axios.post(`${apiUrl}/chat`, { 
       messages: conversationWithPrompt,
-      temperature: 0.2, // Lower temperature for more deterministic responses
+      temperature: 0.1, // Lower temperature for more deterministic responses
       useRag: useRag // Pass the flag to the backend
     });
 
