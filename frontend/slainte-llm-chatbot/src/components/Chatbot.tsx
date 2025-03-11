@@ -1124,7 +1124,6 @@ Please provide:
         ) : (
           /* Chat Interface (either Info Options or Regular Chat) */
           <div className="flex-1 flex flex-col overflow-hidden">
-            // Update this section in your Chatbot component
             {showInfoOptions ? (
               /* General Information Options */
               <div className="flex-1 flex flex-col overflow-auto bg-gray-50"> {/* Using flex-col to stack elements */}
