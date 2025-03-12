@@ -3639,3 +3639,40 @@ ValueError: Collection health_assistant does not exist.
 [32mINFO[0m:     [11-03-2025 13:29:40] ::1:56287 - "GET /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/count HTTP/1.1" 200
 [32mINFO[0m:     [11-03-2025 13:30:04] 127.0.0.1:56321 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
 [32mINFO[0m:     [11-03-2025 13:31:33] 127.0.0.1:56350 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 13:48:30] 127.0.0.1:56729 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 13:52:32] 127.0.0.1:56821 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:17:50] Set chroma_server_nofile to 65535
+[32mINFO[0m:     [11-03-2025 14:17:50] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [11-03-2025 14:17:50] Starting component System
+[36mDEBUG[0m:    [11-03-2025 14:17:50] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [11-03-2025 14:17:50] Starting component SqliteDB
+[36mDEBUG[0m:    [11-03-2025 14:17:50] Starting component QuotaEnforcer
+[36mDEBUG[0m:    [11-03-2025 14:17:50] Starting component Posthog
+[36mDEBUG[0m:    [11-03-2025 14:17:50] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [11-03-2025 14:17:50] Starting component SegmentAPI
+[32mINFO[0m:     [11-03-2025 14:17:50] Started server process [[36m10010[0m]
+[32mINFO[0m:     [11-03-2025 14:17:50] Waiting for application startup.
+[32mINFO[0m:     [11-03-2025 14:17:50] Application startup complete.
+[32mINFO[0m:     [11-03-2025 14:17:50] Uvicorn running on [1mhttp://localhost:8000[0m (Press CTRL+C to quit)
+[36mDEBUG[0m:    [11-03-2025 14:18:19] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [11-03-2025 14:18:19] 127.0.0.1:57566 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:25:31] 127.0.0.1:57801 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:30:23] 127.0.0.1:57833 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:31:30] 127.0.0.1:57857 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:38:37] 127.0.0.1:57996 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:47:16] 127.0.0.1:58135 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:55:23] 127.0.0.1:58248 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 14:59:27] 127.0.0.1:58290 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:02:19] 127.0.0.1:58315 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:08:26] 127.0.0.1:58376 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:10:50] 127.0.0.1:58391 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:11:34] 127.0.0.1:58397 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:13:39] 127.0.0.1:58460 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:14:57] 127.0.0.1:58491 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:23:01] 127.0.0.1:58726 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:26:58] 127.0.0.1:58801 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:27:21] 127.0.0.1:58820 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:28:30] 127.0.0.1:58841 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:30:28] 127.0.0.1:58854 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 15:51:17] 127.0.0.1:59121 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [11-03-2025 16:07:25] 127.0.0.1:59297 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
