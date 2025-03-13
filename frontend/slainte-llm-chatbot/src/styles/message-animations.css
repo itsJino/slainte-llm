@@ -1,0 +1,101 @@
+/* Base animations */
+@keyframes slideInUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes pulseIn {
+    0% {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    70% {
+      transform: scale(1.02);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes blinkCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  
+  /* Message animations */
+  .message-enter {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  
+  .message-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+  }
+  
+  .message-animation-ai {
+    animation: scaleIn 0.3s ease-out forwards;
+    transform-origin: left center;
+  }
+  
+  .message-animation-user {
+    animation: slideInUp 0.3s ease-out forwards;
+  }
+  
+  .message-animation-error {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
+  /* Typing effect cursor */
+  .cursor-blink::after {
+    content: '|';
+    color: #73E6C2;
+    animation: blinkCursor 0.8s infinite;
+    margin-left: 1px;
+  }
+  
+  /* Avatar animation */
+  .avatar-animation {
+    animation: pulseIn 0.5s ease-out forwards;
+  }
+  
+  /* Timestamp animations */
+  .timestamp-animation {
+    animation: fadeIn 0.8s ease-out forwards;
+    animation-delay: 0.3s;
+    opacity: 0;
+  }
+  
+  .timestamp-animation-ai {
+    animation: fadeIn 1s ease-out forwards;
+    animation-delay: 0.5s;
+    opacity: 0;
+  }

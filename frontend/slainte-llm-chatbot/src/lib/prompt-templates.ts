@@ -13,6 +13,7 @@ export const prompts = {
   - Reference URLs where users can find more information from the context provided
   
   RESPONSE FORMAT:
+  - Provide information directly and concisely without introductory phrases like "It seems like you're looking for..." or "Based on the information provided..."
   - Provide information directly without showing your thought process
   - Never include numbered or bulleted lists of your understanding of the query
   - Skip any introductory summary of what the user is asking

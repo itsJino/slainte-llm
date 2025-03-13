@@ -23,16 +23,17 @@ const Chatbot: React.FC = () => {
   const [showInfoOptions, setShowInfoOptions] = useState(false);
   const [infoCategory, setInfoCategory] = useState<string | null>(null);
   const [currentFlow, setCurrentFlow] = useState<string | null>(null);
+  
 
   // Custom hooks
-  const { 
-    logs, 
-    showLogs, 
-    addLog, 
-    clearLogs, 
-    toggleLogs 
+  const {
+    logs,
+    showLogs,
+    addLog,
+    clearLogs,
+    toggleLogs
   } = useApiLogs();
-  
+
   const {
     messages,
     setMessages,
@@ -43,14 +44,14 @@ const Chatbot: React.FC = () => {
     startConversation,
     resetMessages
   } = useChatMessages(conversationId, currentFlow, addLog);
-  
+
   const {
     assessment,
     resetAssessment,
     advanceAssessment,
     formatAssessmentForPrompt
   } = useSymptomAssessment();
-  
+
   const messagesEndRef = useAutoScroll();
 
   // Initialize conversation ID
@@ -222,29 +223,20 @@ const Chatbot: React.FC = () => {
     // Hide options and continue with conversation
     setShowInfoOptions(false);
 
-    // Add user message and prepare for AI response
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      content: "",
-      role: "ai",
-      loading: true,
-      timestamp: formatChatDateTime(),
-      error: "",
-      conversationId: conversationId
-    };
-
-    setMessages(prev => [...prev, userMessage, aiMessage]);
+    // Add only the user message without creating an AI message placeholder
+    // The startConversation function will create the AI message placeholder
+    setMessages(prev => [...prev, userMessage]);
 
     // Generate response based on selected option
     const promptText = `Provide information about ${optionTitle}`;
-    
+
     await startConversation(promptText);
   };
 
   // Custom sendMessage function for symptom checking flow
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    
+
     if (currentFlow === "symptom_checking" && !assessment.complete) {
       // Process user's response using symptom assessment system
       const userMessage: Message = {
@@ -260,10 +252,10 @@ const Chatbot: React.FC = () => {
       // Add user message to the conversation
       setMessages(prevMessages => [...prevMessages, userMessage]);
       setNewMessage("");
-      
+
       // Process the user's response and advance the assessment
       const updatedAssessment = advanceAssessment(newMessage);
-      
+
       // Create placeholder for AI response
       const aiMessage: Message = {
         id: Date.now().toString(),
@@ -277,18 +269,18 @@ const Chatbot: React.FC = () => {
 
       // Add AI message placeholder
       setMessages(prevMessages => [...prevMessages, aiMessage]);
-      
+
       if (updatedAssessment.complete) {
         // If assessment is complete, generate final assessment using LLM
         try {
           // Format a comprehensive prompt with all collected information
           const assessmentPrompt = formatAssessmentForPrompt();
-          
+
           // Generate final assessment
           await startConversation(assessmentPrompt);
         } catch (error) {
           console.error("Error generating assessment:", error);
-          
+
           // Update the message with an error
           setMessages(prevMessages =>
             prevMessages.map(msg =>
@@ -336,7 +328,7 @@ const Chatbot: React.FC = () => {
           }`}
       >
         {/* Chat Header */}
-        <ChatHeader 
+        <ChatHeader
           isFullScreen={isFullScreen}
           toggleFullScreen={toggleFullScreen}
           resetConversation={resetConversation}

@@ -1,19 +1,26 @@
 import React from 'react';
+import '../styles/spinner.css';
 
 const Spinner = () => {
+  // This key ensures the animation reflows and properly starts
+  const uniqueKey = React.useId();
+  
   return (
-    <div className="flex flex-col items-center justify-center py-2">
-      {/* Spinner animation */}
-      <div className="relative h-8 w-8">
+    <div className="spinner-container">
+      {/* Spinner container with a key to ensure animation restart */}
+      <div className="spinner-wrapper" key={uniqueKey}>
         {/* Outer circle */}
-        <div className="absolute inset-0 rounded-full border-2 border-t-2 border-[#006354] border-t-transparent animate-spin"></div>
+        <div className="spinner-outer-circle"></div>
         
-        {/* Inner circle - slightly delayed */}
-        <div className="absolute inset-1 rounded-full border-2 border-t-2 border-[#73E6C2] border-t-transparent animate-spin-slow"></div>
+        {/* Inner circle */}
+        <div className="spinner-inner-circle"></div>
+        
+        {/* Center dot - only in advanced version */}
+        <div className="spinner-dot"></div>
       </div>
       
-      {/* Loading text */}
-      <div className="text-xs text-[#006354] mt-2 animate-pulse">
+      {/* Loading text - now with white color */}
+      <div className="spinner-text text-white">
         Thinking...
       </div>
     </div>
