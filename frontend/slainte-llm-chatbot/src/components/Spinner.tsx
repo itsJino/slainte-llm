@@ -1,27 +1,27 @@
 import React from 'react';
-import '../styles/spinner.css';
 
-const Spinner = () => {
-  // This key ensures the animation reflows and properly starts
-  const uniqueKey = React.useId();
-  
-  return (
-    <div className="spinner-container">
-      {/* Spinner container with a key to ensure animation restart */}
-      <div className="spinner-wrapper" key={uniqueKey}>
-        {/* Outer circle */}
-        <div className="spinner-outer-circle"></div>
-        
-        {/* Inner circle */}
-        <div className="spinner-inner-circle"></div>
-        
-        {/* Center dot - only in advanced version */}
-        <div className="spinner-dot"></div>
+interface SpinnerProps {
+  enhanced?: boolean;
+  message?: string;
+}
+
+const Spinner: React.FC<SpinnerProps> = ({ enhanced = false, message = "Analyzing symptoms and consulting HSE guidelines..." }) => {
+  // Basic spinner for regular loading states
+  if (!enhanced) {
+    return (
+      <div className="flex justify-center items-center py-2">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
       </div>
-      
-      {/* Loading text - now with white color */}
-      <div className="spinner-text text-white">
-        Thinking...
+    );
+  }
+
+  // Enhanced spinner with text for final assessment
+  return (
+    <div className="flex flex-col items-center py-3">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#73E6C2]"></div>
+      <div className="text-center mt-3">
+        <p className="text-sm text-[#73E6C2] font-medium">{message}</p>
+        <p className="text-xs text-white mt-1 opacity-80">This may take a moment as I search HSE resources</p>
       </div>
     </div>
   );

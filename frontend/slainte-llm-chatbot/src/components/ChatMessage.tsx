@@ -5,7 +5,7 @@ import errorIcon from "@/assets/images/error.svg";
 import HSELogo from "@/assets/images/hse_logo_green.png";
 import { Message } from "@/models/message";
 import { useEffect, useState, useRef } from "react";
-import "@/styles/message-animations.css"; // Import the external CSS file
+import "@/styles/message-animations.css";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -15,73 +15,70 @@ interface ChatMessagesProps {
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFullScreen }) => {
   const scrollContentRef = useAutoScroll();
-  // Track which messages have been animated
   const [animatedMessages, setAnimatedMessages] = useState<Record<string, boolean>>({});
-  // Typing animation for AI messages
   const [typingMessages, setTypingMessages] = useState<Record<string, string>>({});
-  // Track previously rendered messages count
   const prevMessagesLengthRef = useRef(0);
+  const [inFinalAssessment, setInFinalAssessment] = useState(false);
 
-  // Update animated messages when new ones arrive
+  // Check if we're in final assessment mode based on message content
+  useEffect(() => {
+    const lastUserMessage = [...messages].reverse().find(msg => msg.role === "user");
+    if (lastUserMessage && lastUserMessage.content.toLowerCase() === "no") {
+      setInFinalAssessment(true);
+    } else {
+      setInFinalAssessment(false);
+    }
+  }, [messages]);
+
+  // Add animation only to new messages
   useEffect(() => {
     const newMessages = messages.slice(prevMessagesLengthRef.current);
     
-    // Add a small staggered delay to each new message
-    newMessages.forEach((message, index) => {
-      const messageIdx = index + prevMessagesLengthRef.current;
-      
-      setTimeout(() => {
-        setAnimatedMessages(prev => ({
-          ...prev,
-          [messageIdx]: true
-        }));
+    if (newMessages.length > 0) {
+      newMessages.forEach((message, index) => {
+        const messageIdx = index + prevMessagesLengthRef.current;
         
-        // For AI messages, start typing animation
-        if (message.role === "ai" && !message.loading) {
-          simulateTyping(messageIdx, message.content as string);
-        }
-      }, 200 * (index + 1)); // Staggered delay
-    });
+        setTimeout(() => {
+          setAnimatedMessages(prev => ({
+            ...prev,
+            [messageIdx]: true
+          }));
+          
+          if (message.role === "ai" && !message.loading) {
+            setTypingMessages(prev => ({
+              ...prev,
+              [messageIdx]: message.content as string
+            }));
+          }
+        }, 150 * index);
+      });
+    }
     
-    // Update ref for next comparison
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
 
-  // Simulate typing animation for AI messages
-  const simulateTyping = (messageIdx: number, content: string) => {
-    // Skip typing for very long messages
-    if (content.length > 300) {
-      setTypingMessages(prev => ({ ...prev, [messageIdx]: content }));
-      return;
-    }
-    
-    let currentIndex = 0;
-    const typingSpeed = 15; // ms per character
-    
-    const typingInterval = setInterval(() => {
-      if (currentIndex <= content.length) {
-        setTypingMessages(prev => ({
-          ...prev, 
-          [messageIdx]: content.substring(0, currentIndex)
-        }));
-        currentIndex++;
-      } else {
-        clearInterval(typingInterval);
+  // Critical change: Filter out ALL loading messages when a response has been received
+  // This ensures we don't see both loading and response messages simultaneously
+  const filteredMessages = messages.filter((message, index, array) => {
+    // If we find any non-loading AI message after the current message, 
+    // and the current message is a loading message, filter it out
+    if (message.loading && message.role === "ai") {
+      const laterResponses = array.slice(index).find(m => 
+        m.role === "ai" && !m.loading && m.content
+      );
+      
+      if (laterResponses) {
+        return false; // Filter out this loading message as we already have a response
       }
-    }, typingSpeed);
-    
-    // Cleanup function
-    return () => clearInterval(typingInterval);
-  };
+    }
+    return true;
+  });
 
-  // Enhanced custom components for better readability and accessibility
+  // Enhanced custom components for markdown
   const components = {
-    // Improved paragraph spacing and line height
     p: (props: any) => (
       <p className="text-lg leading-7 mb-4 text-white" {...props} />
     ),
-    
-    // More prominent headings with better spacing
     h1: (props: any) => (
       <h1 className="text-xl font-bold mt-4 mb-3 border-b border-[#73E6C2] pb-1 text-[#73E6C2]" {...props} />
     ),
@@ -91,8 +88,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFull
     h3: (props: any) => (
       <h3 className="text-lg font-semibold mt-3 mb-2 text-[#73E6C2]" {...props} />
     ),
-    
-    // Improved list formatting with better spacing and more distinct bullets
     ul: (props: any) => (
       <ul className="text-lg pl-6 mb-4 space-y-2 list-disc marker:text-[#73E6C2]" {...props} />
     ),
@@ -102,31 +97,21 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFull
     li: (props: any) => (
       <li className="mb-2 pl-1 text-white" {...props} />
     ),
-    
-    // More visible links
     a: (props: any) => (
       <a className="underline text-[#73E6C2] font-medium hover:brightness-110 transition-all" {...props} />
     ),
-    
-    // Better code formatting
     code: (props: any) => (
       <code className="text-sm bg-[#004e41] px-1.5 py-0.5 rounded font-mono text-white" {...props} />
     ),
     pre: (props: any) => (
       <pre className="text-sm bg-[#004e41] p-3 rounded-md my-3 overflow-x-auto font-mono border border-[#73E6C2] border-opacity-30 text-white" {...props.children} />
     ),
-    
-    // Strong/bold text with emphasis
     strong: (props: any) => (
       <strong className="font-bold text-[#73E6C2]" {...props} />
     ),
-    
-    // Better blockquote styling
     blockquote: (props: any) => (
       <blockquote className="border-l-4 border-[#73E6C2] pl-4 italic my-4 text-[#e0e0e0]" {...props} />
     ),
-    
-    // Enhanced table styling
     table: (props: any) => (
       <div className="overflow-x-auto my-4">
         <table className="min-w-full border border-[#73E6C2] border-opacity-30 text-white" {...props} />
@@ -141,54 +126,54 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFull
     td: (props: any) => (
       <td className="px-3 py-2 border-b border-[#73E6C2] border-opacity-10" {...props} />
     ),
-    
-    // Improved horizontal rule
     hr: () => (
       <hr className="my-6 border-t-2 border-[#73E6C2] border-opacity-30" />
     ),
   };
 
   return (
-    <div ref={scrollContentRef} className="space-y-6 max-h-[400px]">
-      {messages.map(({ role, content, loading, error, timestamp }, idx) => {
+    <div ref={scrollContentRef} className="space-y-3 max-h-[400px]">
+      {filteredMessages.map(({ role, content, loading, error, timestamp }, idx) => {
         const isAnimated = animatedMessages[idx] || false;
         const displayContent = role === "ai" && typingMessages[idx] !== undefined 
           ? typingMessages[idx] 
           : content;
         
-        // Determine if we should show the typing cursor
-        const showTypingCursor = role === "ai" && 
-          typingMessages[idx] !== undefined && 
-          typingMessages[idx] !== content;
+        // Show enhanced loading message for final assessment
+        const showEnhancedLoading = loading && role === "ai" && inFinalAssessment;
         
         return (
           <div
             key={idx}
-            className={`flex ${role === "user" ? "justify-end" : "justify-start"} w-full message-enter ${
-              isAnimated ? "message-enter-active" : ""
-            }`}
+            className={`flex ${role === "user" ? "justify-end" : "justify-start"} w-full`}
           >
             {/* Assistant Message */}
             {role === "ai" && (
               <div className={`flex items-start space-x-3 ${isFullScreen ? "max-w-[60%]" : "max-w-[95%]"}`}>
                 <img 
-                  className={`h-[30px] w-[30px] shrink-0 rounded-full mt-1 ${isAnimated ? "avatar-animation" : "opacity-0"}`}
+                  className={`h-[30px] w-[30px] shrink-0 rounded-full mt-1 ${isAnimated ? "opacity-100" : "opacity-0"} transition-opacity duration-300`}
                   src={HSELogo} 
                   alt="HSE logo"
                 />
                 <div 
-                  className={`flex flex-col bg-[#006354] text-white p-4 rounded-lg shadow-lg ${
-                    isAnimated ? "message-animation-ai" : "opacity-0"
-                  }`}
+                  className={`flex flex-col bg-[#006354] text-white p-4 rounded-lg shadow-lg transform ${
+                    isAnimated ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+                  } transition-all duration-300`}
                 > 
                   {loading ? (
-                    <Spinner />
+                    <div className="flex flex-col items-center">
+                      {showEnhancedLoading ? (
+                        <Spinner enhanced={true} />
+                      ) : (
+                        <Spinner />
+                      )}
+                    </div>
                   ) : (
-                    <div className={`markdown-content ${showTypingCursor ? 'cursor-blink' : ''}`}>
+                    <div className="markdown-content">
                       <Markdown components={components}>{displayContent as string}</Markdown>
                     </div>
                   )}
-                  <span className={`text-xs text-gray-300 mt-3 opacity-80 ${isAnimated ? "timestamp-animation-ai" : ""}`}>
+                  <span className="text-xs text-gray-300 mt-1 opacity-80">
                     {timestamp}
                   </span>
                 </div>
@@ -199,12 +184,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFull
             {role === "user" && (
               <div className="flex items-end space-x-2 max-w-[80%]">
                 <div 
-                  className={`flex flex-col bg-[#f3f3f3] text-black p-4 rounded-lg shadow-md ${
-                    isAnimated ? "message-animation-user" : "opacity-0"
-                  }`}
+                  className={`flex flex-col bg-[#f3f3f3] text-black p-4 rounded-lg shadow-md transform ${
+                    isAnimated ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+                  } transition-all duration-300`}
                 > 
                   <div className="text-lg leading-relaxed whitespace-pre-line">{content}</div>
-                  <span className={`text-xs text-gray-500 mt-2 text-right ${isAnimated ? "timestamp-animation" : ""}`}>
+                  <span className="text-xs text-gray-500 mt-1 text-right">
                     {timestamp}
                   </span>
                 </div>
@@ -215,8 +200,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFull
             {error && (
               <div 
                 className={`flex items-center gap-2 text-sm text-red-500 mt-2 bg-red-50 px-3 py-2 rounded-md ${
-                  isAnimated ? "message-animation-error" : "opacity-0"
-                }`}
+                  isAnimated ? "opacity-100" : "opacity-0"
+                } transition-opacity duration-300`}
               >
                 <img className="h-5 w-5" src={errorIcon} alt="error" />
                 <span>Error generating the response. Please try again.</span>

@@ -7,10 +7,16 @@ import ChatButton from "@/components/ChatButton";
 import InfoOptions from "@/components/InfoOptions";
 import ApiLogViewer from "./ApiLogViewer";
 import useAutoScroll from "@/hooks/useAutoScroll";
+import SaveAssessmentButton from "@/components/SaveAssessmentButton";
+import EndConversationOptions from "@/components/EndConversationOptions";
 import { useChatMessages, formatChatDateTime } from "@/hooks/useChatMessages";
 import { useSymptomAssessment } from "@/hooks/useSymptomAssessment";
 import { useApiLogs } from "@/hooks/useApiLogs";
-import { infoCategories, prompts, symptomCheckingQuestions } from "@/lib/prompt-templates";
+import {
+  infoCategories,
+  SYSTEM_PROMPTS,
+  symptomCheckingQuestions
+} from "@/lib/prompt-templates"; // Updated import
 import { Message } from "@/models/message";
 
 const Chatbot: React.FC = () => {
@@ -23,7 +29,10 @@ const Chatbot: React.FC = () => {
   const [showInfoOptions, setShowInfoOptions] = useState(false);
   const [infoCategory, setInfoCategory] = useState<string | null>(null);
   const [currentFlow, setCurrentFlow] = useState<string | null>(null);
-  
+  const [generatingFinalAssessment, setGeneratingFinalAssessment] = useState(false);
+  const [showSaveOption, setShowSaveOption] = useState(false);
+  const [showEndOptions, setShowEndOptions] = useState(false);
+
 
   // Custom hooks
   const {
@@ -74,6 +83,16 @@ const Chatbot: React.FC = () => {
     setInfoCategory(null);
     setCurrentFlow(null);
     resetAssessment();
+    setGeneratingFinalAssessment(false);
+    setShowSaveOption(false);
+  };
+
+  const handleEndConversation = () => {
+    setShowEndOptions(true);
+  };
+  
+  const closeEndConversation = () => {
+    setShowEndOptions(false);
   };
 
   // Handle menu selection
@@ -133,7 +152,7 @@ const Chatbot: React.FC = () => {
       // Create a hidden system message with the prompt
       const systemMessage: Message = {
         id: `system-${Date.now()}`,
-        content: prompts.symptom_checking,
+        content: SYSTEM_PROMPTS.symptom_checking, // Updated to use the centralized prompts
         role: "system",
         loading: false,
         timestamp: formatChatDateTime(),
@@ -228,9 +247,10 @@ const Chatbot: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
 
     // Generate response based on selected option
-    const promptText = `Provide information about ${optionTitle}`;
+    const promptText = `Give me general information on ${optionTitle}`;
+    // const promptText = `${optionTitle}`;
 
-    await startConversation(promptText);
+    await startConversation(SYSTEM_PROMPTS.general_information, promptText); // Updated to use centralized prompts
   };
 
   // Custom sendMessage function for symptom checking flow
@@ -273,11 +293,20 @@ const Chatbot: React.FC = () => {
       if (updatedAssessment.complete) {
         // If assessment is complete, generate final assessment using LLM
         try {
+          // Set flag for generating final assessment
+          setGeneratingFinalAssessment(true);
+
           // Format a comprehensive prompt with all collected information
           const assessmentPrompt = formatAssessmentForPrompt();
 
-          // Generate final assessment
-          await startConversation(assessmentPrompt);
+          // Generate final assessment with RAG
+          await startConversation(SYSTEM_PROMPTS.symptom_checking, assessmentPrompt); // Updated to use centralized prompts
+
+          // Show save option after assessment is complete
+          setShowSaveOption(true);
+
+          // Reset flag when complete
+          setGeneratingFinalAssessment(false);
         } catch (error) {
           console.error("Error generating assessment:", error);
 
@@ -289,6 +318,9 @@ const Chatbot: React.FC = () => {
                 : msg
             )
           );
+
+          // Reset flag when error occurs
+          setGeneratingFinalAssessment(false);
         }
       } else {
         // If assessment is not complete, get the next question from the hardcoded list
@@ -353,10 +385,39 @@ const Chatbot: React.FC = () => {
                 <div className="flex-grow overflow-auto p-4" ref={messagesEndRef}>
                   <ChatMessage
                     messages={visibleMessages}
-                    isLoading={isLoading}
+                    isLoading={isLoading || generatingFinalAssessment}
                     isFullScreen={isFullScreen}
                   />
                 </div>
+
+                {showEndOptions ? (
+                  <EndConversationOptions
+                    messages={visibleMessages}
+                    onClose={() => {
+                      closeEndConversation();
+                      closeChat();
+                    }}
+                  />
+                ) : (
+                  <div className="border-t border-gray-300 p-0">
+                    <div className="flex items-center">
+                      <ChatInput
+                        isLoading={isLoading}
+                        sendMessage={handleSendMessage}
+                        newMessage={newMessage}
+                        setNewMessage={setNewMessage}
+                      />
+                      {visibleMessages.length > 1 && (
+                        <button
+                          onClick={handleEndConversation}
+                          className="ml-2 mr-2 text-xs text-[#02594C] hover:underline"
+                        >
+                          End Conversation
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Options container */}
                 <InfoOptions
@@ -377,6 +438,12 @@ const Chatbot: React.FC = () => {
                   />
                 </div>
 
+                {currentFlow === "symptom_checking" && assessment.complete && showSaveOption && (
+                  <div className="p-3 bg-gray-50 flex justify-center">
+                    <SaveAssessmentButton messages={visibleMessages} />
+                  </div>
+                )}
+
                 <div className="border-t border-gray-300 p-0">
                   <ChatInput
                     isLoading={isLoading}
@@ -385,10 +452,13 @@ const Chatbot: React.FC = () => {
                     setNewMessage={setNewMessage}
                   />
                 </div>
+
+
               </>
             )}
           </div>
         )}
+
       </div>
 
       {/* API Logs Modal */}

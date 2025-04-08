@@ -2,6 +2,8 @@ package com.example.slainte.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -11,6 +13,7 @@ import java.util.Map;
 
 @Service
 public class DeepseekChatClient {
+    private static final Logger logger = LoggerFactory.getLogger(DeepseekChatClient.class);
 
     private final String AI_API_URL = "http://localhost:11434/api/generate";
     private final WebClient webClient;
@@ -32,6 +35,8 @@ public class DeepseekChatClient {
             // Create optimized prompt with reduced size
             String fullPrompt = createOptimizedPrompt(inputText);
             
+            logger.debug("Full prompt to LLM: {}", fullPrompt);
+            
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", "deepseek-r1:1.5b");
             requestBody.put("prompt", fullPrompt);
@@ -48,6 +53,7 @@ public class DeepseekChatClient {
                 
             return response;
         } catch (Exception e) {
+            logger.error("Error retrieving response from LLM", e);
             return "Error retrieving response: " + e.getMessage();
         }
     }
@@ -86,6 +92,7 @@ public class DeepseekChatClient {
             JsonNode root = objectMapper.readTree(jsonResponse);
             return root.has("response") ? root.get("response").asText() : "No response from AI.";
         } catch (Exception e) {
+            logger.error("Error parsing AI response", e);
             return "Error parsing AI response: " + e.getMessage();
         }
     }

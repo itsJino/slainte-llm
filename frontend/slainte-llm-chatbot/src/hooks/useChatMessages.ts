@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Message } from '@/models/message';
 import { getResponse } from '@/lib/api';
-import { prompts } from '@/lib/prompt-templates';
+import { SYSTEM_PROMPTS } from "@/lib/prompt-templates";
 
 // Helper function to format date/time for chat messages
 export function formatChatDateTime(): string {
@@ -73,8 +73,8 @@ export function useChatMessages(conversationId: string, currentFlow: string | nu
 
       // Get the system message based on the current flow
       const systemPrompt = currentFlow 
-        ? prompts[currentFlow as keyof typeof prompts] 
-        : prompts.general_information;
+        ? SYSTEM_PROMPTS[currentFlow as keyof typeof SYSTEM_PROMPTS] 
+        : SYSTEM_PROMPTS.general_information;
 
       const systemMessage: Message = existingSystemMessage || {
         id: `system-${Date.now()}`,
@@ -87,8 +87,9 @@ export function useChatMessages(conversationId: string, currentFlow: string | nu
         conversationId: conversationId
       };
 
-      // Always use RAG for general information flow
-      const useRag = currentFlow === "general_information";
+      // Use RAG for general information flow AND for final symptom assessments
+      const useRag = currentFlow === "general_information" || 
+                     (currentFlow === "symptom_checking" && userMessage.content.includes("final assessment"));
 
       // Create the messages array to send to the API
       const apiMessages: Message[] = [
@@ -139,8 +140,8 @@ export function useChatMessages(conversationId: string, currentFlow: string | nu
 
       // Log error
       const systemPrompt = currentFlow 
-        ? prompts[currentFlow as keyof typeof prompts] 
-        : prompts.general_information;
+        ? SYSTEM_PROMPTS[currentFlow as keyof typeof SYSTEM_PROMPTS] 
+        : SYSTEM_PROMPTS.general_information;
       
       addApiLog({
         request: {
@@ -172,13 +173,24 @@ export function useChatMessages(conversationId: string, currentFlow: string | nu
   }, [newMessage, messages, conversationId, currentFlow, addApiLog]);
 
   // Function to start a conversation with a specific prompt
-  const startConversation = useCallback(async (promptText: string, aiResponse: string = "") => {
+  const startConversation = useCallback(async (promptText: string, specificPromptText: string, aiResponse: string = "") => {
     setIsLoading(true);
+
+    const PromptMessage: Message = {
+        id: Date.now().toString(),
+        content: promptText,
+        role: "system",
+        loading: false,
+        timestamp: formatChatDateTime(),
+        error: "",
+        hidden: true, // Hide from UI
+        conversationId: conversationId
+        };
 
     // Create a system message that won't be displayed to the user
     const initialMessage: Message = {
       id: Date.now().toString(),
-      content: promptText,
+      content: specificPromptText,
       role: "user",
       loading: false,
       timestamp: formatChatDateTime(),
@@ -215,17 +227,19 @@ export function useChatMessages(conversationId: string, currentFlow: string | nu
           setIsLoading(false);
         }, 500); // Simulate a short delay
       } else {
-        // For symptom checking, don't use RAG for the guided questions
-        const useRag = currentFlow === "general_information";
+        // Enable RAG for final symptom assessment
+        const useRag = currentFlow === "general_information" || 
+                      (currentFlow === "symptom_checking" && 
+                       specificPromptText.includes("Please analyze the following patient information"));
 
         // Prepare request payload
         const requestPayload = {
-          messages: [initialMessage],
+          messages: [PromptMessage, initialMessage],
           useRag: useRag
         };
 
         // Make the actual API call
-        let responseData = await getResponse([initialMessage], useRag);
+        let responseData = await getResponse([PromptMessage, initialMessage], useRag);
 
         // Log request and response
         addApiLog({
@@ -260,7 +274,9 @@ export function useChatMessages(conversationId: string, currentFlow: string | nu
       addApiLog({
         request: {
           messages: [initialMessage],
-          useRag: currentFlow === "general_information"
+          useRag: currentFlow === "general_information" || 
+                 (currentFlow === "symptom_checking" && 
+                  specificPromptText.includes("Please analyze the following patient information"))
         },
         error: errorMessage
       });

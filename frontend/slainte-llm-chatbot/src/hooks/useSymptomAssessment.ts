@@ -135,6 +135,7 @@ export function useSymptomAssessment() {
   const formatAssessmentForPrompt = useCallback(() => {
     if (!assessment.mainSymptoms) return "";
     
+    // Enhanced prompt with RAG instructions for symptom assessment
     return `
 Please analyze the following patient information and provide a health assessment:
 - Age: ${assessment.age || "Not provided"}
@@ -148,11 +149,17 @@ Please analyze the following patient information and provide a health assessment
 - Medical History: ${assessment.medicalHistory || "Not provided"}
 - Other Symptoms: ${assessment.otherSymptoms.join(", ") || "None reported"}
 
-Please provide:
-1. A summary of the symptoms and health information
-2. Potential causes (without making a definitive diagnosis)
-3. Appropriate next steps (self-care or medical attention)
-4. Information on where to seek help if needed
+Using the HSE knowledge base, please provide:
+- Personalize your response by referring to specific details the user has shared
+- Present information in these clear sections without using ### or ** formatting:
+  1. "Summary of Your Information" - Bullet points: Age, Gender, Smoking Status, High Blood Pressure, Diabetes, Main Symptoms, Severity, Duration, Medical History, Other Symptoms
+  2. "Possible Explanations" - ONLY List 2-3 most relevant potential causes based on the symptoms and HSE guidance
+  3. "Suggested Next Steps" - Care recommendations appropriate to severity, citing HSE recommendations
+  4. "Where to Get Help" - Relevant HSE services based on symptom severity with specific contact information
+  5. "Further Information" - Provide 1-2 specific HSE website links for additional information
+
+At the end of your final assessment, include this exact text:
+"For your convenience, you can download a copy of this health assessment as a PDF by clicking the 'Save Assessment' button below. Take care of yourself, and feel free to ask if you have any other questions."
 `;
   }, [assessment]);
 
