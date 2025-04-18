@@ -4,7 +4,7 @@ import glob
 import pdfplumber
 import chromadb
 import argparse
-from sentence_transformers import SentenceTransformer
+import requests
 
 def clean_text(text):
     """
@@ -80,8 +80,26 @@ def extract_text_from_pdf(pdf_path):
         print(f"❌ Error extracting text from {pdf_path}: {e}")
     return text.strip()
 
-def add_documents(input_dir, collection_name="health_assistant", chromadb_host="localhost", chromadb_port=8000, model_name="multi-qa-mpnet-base-dot-v1"):
-    """Add new documents to the existing ChromaDB collection"""
+def generate_embedding(text, ollama_url="http://localhost:11434/api/embeddings", model_name="nomic-embed-text"):
+    """Generate embeddings using Ollama's API with the nomic-embed-text model"""
+    try:
+        response = requests.post(
+            ollama_url,
+            json={"model": model_name, "prompt": text}
+        )
+        
+        if response.status_code == 200:
+            return response.json()["embedding"]
+        else:
+            print(f"❌ Error getting embedding: {response.text}")
+            return None
+    except Exception as e:
+        print(f"❌ Error calling Ollama API: {e}")
+        return None
+
+def add_documents(input_dir, collection_name="health_assistant", chromadb_host="localhost", chromadb_port=8000, 
+                  ollama_url="http://localhost:11434/api/embeddings", model_name="nomic-embed-text"):
+    """Add new documents to the existing ChromaDB collection using Ollama's embedding API"""
     
     print(f"🔄 Connecting to ChromaDB at {chromadb_host}:{chromadb_port}")
     chroma_client = chromadb.HttpClient(host=chromadb_host, port=chromadb_port)
@@ -95,9 +113,15 @@ def add_documents(input_dir, collection_name="health_assistant", chromadb_host="
         print(f"Creating new collection: {collection_name}")
         collection = chroma_client.create_collection(name=collection_name)
 
-    # Load the embedding model
-    print(f"🧠 Loading embedding model: {model_name}")
-    model = SentenceTransformer(model_name)
+    # Test the embedding API
+    print(f"🧠 Testing embedding model: {model_name}")
+    test_embedding = generate_embedding("Test embedding with Ollama", ollama_url, model_name)
+    if test_embedding:
+        print(f"✅ Embedding test successful! Vector dimension: {len(test_embedding)}")
+    else:
+        print("❌ Failed to generate test embedding. Please check if Ollama is running and has the nomic-embed-text model loaded.")
+        print("   Run: 'ollama pull nomic-embed-text' to download the model.")
+        return
     
     # Find all PDF files in the input directory and its subdirectories
     pdf_files = []
@@ -144,8 +168,12 @@ def add_documents(input_dir, collection_name="health_assistant", chromadb_host="
         for i, chunk in enumerate(chunks):
             chunk_id = f"{doc_id}_chunk_{i}"
             
-            # Generate embedding
-            embedding = model.encode(chunk).tolist()
+            # Generate embedding using Ollama
+            embedding = generate_embedding(chunk, ollama_url, model_name)
+            
+            if not embedding:
+                print(f"⚠️ Failed to generate embedding for chunk {i+1}/{len(chunks)}")
+                continue
             
             # Add metadata
             metadata = {
@@ -167,6 +195,10 @@ def add_documents(input_dir, collection_name="health_assistant", chromadb_host="
                 metadatas=[metadata]
             )
             
+            # Print progress
+            if (i+1) % 10 == 0 or i+1 == len(chunks):
+                print(f"  Progress: {i+1}/{len(chunks)} chunks processed")
+            
         print(f"✅ Successfully added {doc_id} to the database")
     
     # Print collection stats
@@ -174,19 +206,21 @@ def add_documents(input_dir, collection_name="health_assistant", chromadb_host="
     print(f"\n📊 Collection now has {collection_count} document chunks")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Add documents to an existing ChromaDB collection")
+    parser = argparse.ArgumentParser(description="Add documents to ChromaDB using Ollama's nomic-embed-text model")
     parser.add_argument("--input_dir", required=True, help="Directory containing PDF files to add")
     parser.add_argument("--collection", default="health_assistant", help="ChromaDB collection name")
-    parser.add_argument("--host", default="localhost", help="ChromaDB host")
-    parser.add_argument("--port", default=8000, type=int, help="ChromaDB port")
-    parser.add_argument("--model", default="multi-qa-mpnet-base-dot-v1", help="SentenceTransformer model name")
+    parser.add_argument("--chromadb_host", default="localhost", help="ChromaDB host")
+    parser.add_argument("--chromadb_port", default=8000, type=int, help="ChromaDB port")
+    parser.add_argument("--ollama_url", default="http://localhost:11434/api/embeddings", help="Ollama API URL")
+    parser.add_argument("--model", default="nomic-embed-text", help="Ollama embedding model name")
     
     args = parser.parse_args()
     
     add_documents(
         input_dir=args.input_dir,
         collection_name=args.collection,
-        chromadb_host=args.host,
-        chromadb_port=args.port,
+        chromadb_host=args.chromadb_host,
+        chromadb_port=args.chromadb_port,
+        ollama_url=args.ollama_url,
         model_name=args.model
     )

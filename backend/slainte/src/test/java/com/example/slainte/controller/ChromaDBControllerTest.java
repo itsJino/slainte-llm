@@ -5,7 +5,6 @@ import com.example.slainte.service.EmbeddingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -21,128 +20,141 @@ import static org.mockito.Mockito.*;
 public class ChromaDBControllerTest {
 
     @Mock
-    private ChromaDBService chromaDBService;
-
+    private ChromaDBService chromaDBServiceMock;
+    
     @Mock
-    private EmbeddingService embeddingService;
-
-    @InjectMocks
-    private ChromaDBController chromaDBTestController;
-
-    private List<Double> testEmbedding;
-    private String mockChromaResponse;
-
+    private EmbeddingService embeddingServiceMock;
+    
+    private ChromaDBController chromaDBController;
+    
     @BeforeEach
     public void setup() {
-        // Create a test embedding with 512 dimensions
-        testEmbedding = new ArrayList<>();
-        for (int i = 0; i < 512; i++) {
-            testEmbedding.add(0.1);
-        }
-        
-        mockChromaResponse = "Sample document from ChromaDB";
+        chromaDBController = new ChromaDBController(chromaDBServiceMock, embeddingServiceMock);
     }
-
+    
     @Test
-    public void testTestChromaDB_Success() {
-        // Setup
-        when(chromaDBService.queryDatabase(anyList(), eq(3))).thenReturn(mockChromaResponse);
-
-        // Execute
-        ResponseEntity<Map<String, Object>> response = chromaDBTestController.testChromaDB();
-
-        // Verify
+    public void testChromaDBEndpointSuccess() {
+        // Configure mock
+        when(chromaDBServiceMock.queryDatabase(anyList(), eq(3)))
+            .thenReturn("Test ChromaDB response");
+        
+        // Execute test
+        ResponseEntity<Map<String, Object>> response = chromaDBController.testChromaDB();
+        
+        // Verify response
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         
         Map<String, Object> responseBody = response.getBody();
-        assertNotNull(responseBody);
         assertEquals(true, responseBody.get("success"));
         assertEquals("ChromaDB test completed", responseBody.get("message"));
-        assertEquals(mockChromaResponse, responseBody.get("response"));
+        assertEquals("Test ChromaDB response", responseBody.get("response"));
         
-        verify(chromaDBService).queryDatabase(anyList(), eq(3));
+        // Verify mock interactions
+        verify(chromaDBServiceMock).queryDatabase(anyList(), eq(3));
     }
-
+    
     @Test
-    public void testTestChromaDB_Exception() {
-        // Setup - simulate an exception when calling ChromaDB
-        when(chromaDBService.queryDatabase(anyList(), anyInt())).thenThrow(new RuntimeException("Test exception"));
-
-        // Execute
-        ResponseEntity<Map<String, Object>> response = chromaDBTestController.testChromaDB();
-
-        // Verify
+    public void testChromaDBEndpointError() {
+        // Configure mock to throw exception
+        when(chromaDBServiceMock.queryDatabase(anyList(), eq(3)))
+            .thenThrow(new RuntimeException("Test error"));
+        
+        // Execute test
+        ResponseEntity<Map<String, Object>> response = chromaDBController.testChromaDB();
+        
+        // Verify response
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
         
         Map<String, Object> responseBody = response.getBody();
-        assertNotNull(responseBody);
         assertEquals(false, responseBody.get("success"));
-        assertEquals("Test exception", responseBody.get("error"));
+        assertEquals("Test error", responseBody.get("error"));
+        
+        // Verify mock interactions
+        verify(chromaDBServiceMock).queryDatabase(anyList(), eq(3));
     }
-
+    
     @Test
-    public void testTestQuery_Success() {
-        // Setup
-        String query = "test query";
-        Map<String, String> requestBody = Map.of("query", query);
-        
-        when(embeddingService.getEmbedding(query)).thenReturn(testEmbedding);
-        when(chromaDBService.queryDatabase(testEmbedding, 3)).thenReturn(mockChromaResponse);
-
-        // Execute
-        ResponseEntity<Map<String, Object>> response = chromaDBTestController.testQuery(requestBody);
-
-        // Verify
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        
-        Map<String, Object> responseBody = response.getBody();
-        assertNotNull(responseBody);
-        assertEquals(true, responseBody.get("success"));
-        assertEquals(query, responseBody.get("query"));
-        assertEquals(512, responseBody.get("embeddingSize"));
-        assertEquals(mockChromaResponse, responseBody.get("response"));
-        
-        verify(embeddingService).getEmbedding(query);
-        verify(chromaDBService).queryDatabase(testEmbedding, 3);
-    }
-
-    @Test
-    public void testTestQuery_MissingQuery() {
-        // Setup - request body without query
+    public void testQueryEndpointSuccess() {
+        // Prepare test data
+        String testQuery = "test query";
         Map<String, String> requestBody = new HashMap<>();
-
-        // Execute
-        ResponseEntity<Map<String, Object>> response = chromaDBTestController.testQuery(requestBody);
-
-        // Verify
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        requestBody.put("query", testQuery);
+        
+        List<Double> mockEmbedding = new ArrayList<>();
+        for (int i = 0; i < 512; i++) {
+            mockEmbedding.add(0.1);
+        }
+        
+        // Configure mocks
+        when(embeddingServiceMock.getEmbedding(testQuery)).thenReturn(mockEmbedding);
+        when(chromaDBServiceMock.queryDatabase(mockEmbedding, 3))
+            .thenReturn("Test ChromaDB response");
+        
+        // Execute test
+        ResponseEntity<Map<String, Object>> response = chromaDBController.testQuery(requestBody);
+        
+        // Verify response
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         
         Map<String, Object> responseBody = response.getBody();
-        assertNotNull(responseBody);
+        assertEquals(true, responseBody.get("success"));
+        assertEquals(testQuery, responseBody.get("query"));
+        assertEquals(mockEmbedding.size(), responseBody.get("embeddingSize"));
+        assertEquals("Test ChromaDB response", responseBody.get("response"));
+        
+        // Verify mock interactions
+        verify(embeddingServiceMock).getEmbedding(testQuery);
+        verify(chromaDBServiceMock).queryDatabase(mockEmbedding, 3);
+    }
+    
+    @Test
+    public void testQueryEndpointWithEmptyQuery() {
+        // Prepare test data with missing query
+        Map<String, String> requestBody = new HashMap<>();
+        
+        // Execute test
+        ResponseEntity<Map<String, Object>> response = chromaDBController.testQuery(requestBody);
+        
+        // Verify response
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        
+        Map<String, Object> responseBody = response.getBody();
         assertEquals(false, responseBody.get("success"));
         assertEquals("Query is required", responseBody.get("error"));
         
-        verify(embeddingService, never()).getEmbedding(anyString());
-        verify(chromaDBService, never()).queryDatabase(anyList(), anyInt());
+        // Verify no interactions with services
+        verifyNoInteractions(embeddingServiceMock);
+        verifyNoInteractions(chromaDBServiceMock);
     }
-
+    
     @Test
-    public void testTestQuery_EmbeddingServiceException() {
-        // Setup
-        String query = "test query";
-        Map<String, String> requestBody = Map.of("query", query);
+    public void testQueryEndpointWithEmbeddingError() {
+        // Prepare test data
+        String testQuery = "test query";
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("query", testQuery);
         
-        when(embeddingService.getEmbedding(query)).thenThrow(new RuntimeException("Embedding service error"));
-
-        // Execute
-        ResponseEntity<Map<String, Object>> response = chromaDBTestController.testQuery(requestBody);
-
-        // Verify
+        // Configure mock to throw exception
+        when(embeddingServiceMock.getEmbedding(testQuery))
+            .thenThrow(new RuntimeException("Embedding service error"));
+        
+        // Execute test
+        ResponseEntity<Map<String, Object>> response = chromaDBController.testQuery(requestBody);
+        
+        // Verify response
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
         
         Map<String, Object> responseBody = response.getBody();
-        assertNotNull(responseBody);
         assertEquals(false, responseBody.get("success"));
         assertEquals("Embedding service error", responseBody.get("error"));
+        
+        // Verify mock interactions
+        verify(embeddingServiceMock).getEmbedding(testQuery);
+        verifyNoInteractions(chromaDBServiceMock);
     }
 }

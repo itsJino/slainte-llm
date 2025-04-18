@@ -149,7 +149,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading, isFull
           >
             {/* Assistant Message */}
             {role === "ai" && (
-              <div className={`flex items-start space-x-3 ${isFullScreen ? "max-w-[60%]" : "max-w-[95%]"}`}>
+              <div className={`flex items-start space-x-3 ${isFullScreen ? "max-w-[95%]" : "max-w-[95%]"}`}>
                 <img 
                   className={`h-[30px] w-[30px] shrink-0 rounded-full mt-1 ${isAnimated ? "opacity-100" : "opacity-0"} transition-opacity duration-300`}
                   src={HSELogo} 

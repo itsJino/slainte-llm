@@ -8,7 +8,6 @@ import InfoOptions from "@/components/InfoOptions";
 import ApiLogViewer from "./ApiLogViewer";
 import useAutoScroll from "@/hooks/useAutoScroll";
 import SaveAssessmentButton from "@/components/SaveAssessmentButton";
-import EndConversationOptions from "@/components/EndConversationOptions";
 import { useChatMessages, formatChatDateTime } from "@/hooks/useChatMessages";
 import { useSymptomAssessment } from "@/hooks/useSymptomAssessment";
 import { useApiLogs } from "@/hooks/useApiLogs";
@@ -18,6 +17,7 @@ import {
   symptomCheckingQuestions
 } from "@/lib/prompt-templates"; // Updated import
 import { Message } from "@/models/message";
+import { InfoOption } from "@/models/info-categories";
 
 const Chatbot: React.FC = () => {
   // UI state
@@ -90,7 +90,7 @@ const Chatbot: React.FC = () => {
   const handleEndConversation = () => {
     setShowEndOptions(true);
   };
-  
+
   const closeEndConversation = () => {
     setShowEndOptions(false);
   };
@@ -218,7 +218,7 @@ const Chatbot: React.FC = () => {
   const handleOptionSelect = async (optionId: string) => {
     // Add user message showing what they selected
     let optionTitle = "";
-    let categoryData = null;
+    let categoryData: { options: { id: string; title: string; subOptions?: { id: string; title: string }[] }[] } | null = null;
 
     // Find the option title
     if (infoCategory) {
@@ -252,6 +252,42 @@ const Chatbot: React.FC = () => {
 
     await startConversation(SYSTEM_PROMPTS.general_information, promptText); // Updated to use centralized prompts
   };
+
+  const handleSubOptionSelect = async (optionId: string, subOptionId: string) => {
+    // Find the parent category and option
+    const category = infoCategory;
+    const categoryData = category ? infoCategories[category as keyof typeof infoCategories] : null;
+    
+    if (!categoryData) return;
+    
+    const option = categoryData.options.find(o => o.id === optionId) as InfoOption;
+    const subOption = option?.subOptions?.find(so => so.id === subOptionId);
+    
+    if (!option || !subOption) return;
+    
+    // Add user message showing what they selected
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: `I'd like information about ${option.title} - ${subOption.title}`,
+      role: "user",
+      loading: false,
+      timestamp: formatChatDateTime(),
+      error: "",
+      conversationId: conversationId
+    };
+  
+    // Hide options and continue with conversation
+    setShowInfoOptions(false);
+  
+    // Add user message
+    setMessages(prev => [...prev, userMessage]);
+  
+    // Generate response based on selected suboption
+    const promptText = `Give me information on ${option.title} - ${subOption.title}`;
+    
+    await startConversation(SYSTEM_PROMPTS.general_information, promptText);
+  };
+  
 
   // Custom sendMessage function for symptom checking flow
   const handleSendMessage = async () => {
@@ -389,42 +425,13 @@ const Chatbot: React.FC = () => {
                     isFullScreen={isFullScreen}
                   />
                 </div>
-
-                {showEndOptions ? (
-                  <EndConversationOptions
-                    messages={visibleMessages}
-                    onClose={() => {
-                      closeEndConversation();
-                      closeChat();
-                    }}
-                  />
-                ) : (
-                  <div className="border-t border-gray-300 p-0">
-                    <div className="flex items-center">
-                      <ChatInput
-                        isLoading={isLoading}
-                        sendMessage={handleSendMessage}
-                        newMessage={newMessage}
-                        setNewMessage={setNewMessage}
-                      />
-                      {visibleMessages.length > 1 && (
-                        <button
-                          onClick={handleEndConversation}
-                          className="ml-2 mr-2 text-xs text-[#02594C] hover:underline"
-                        >
-                          End Conversation
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 {/* Options container */}
                 <InfoOptions
                   infoCategory={infoCategory}
                   infoCategories={infoCategories}
                   handleCategorySelect={handleCategorySelect}
                   handleOptionSelect={handleOptionSelect}
+                  handleSubOptionSelect={handleSubOptionSelect}
                 />
               </div>
             ) : (

@@ -32,3 +32,12 @@ Thumbs.db
 .vscode/
 *.sublime-project
 *.sublime-workspace
+
+# ChromaDB related files
+**/chroma_db/
+chroma_db/
+**/chroma.sqlite3
+*.sqlite3
+**/chroma.log
+backend/chroma/chroma.log
+backend/chroma/chroma_db/chroma.sqlite3

@@ -23,7 +23,7 @@ public class KnowledgeBaseService {
     private Map<String, Object> lastRawResults;
     
     // Configuration for search
-    private final int DEFAULT_TOP_K = 8;
+    private final int DEFAULT_TOP_K = 20;
     private final int MAX_TOP_K = 20;
     
     public KnowledgeBaseService(
@@ -76,15 +76,42 @@ public class KnowledgeBaseService {
             // Store the retrieved context
             this.lastRetrievedContext = result;
             
-            // Log a preview of the retrieved context
-            String preview = result.length() > 100 ? result.substring(0, 100) + "..." : result;
-            logger.info("Retrieved context for query [{}]: {}", query, preview);
+            // Enhanced logging of retrieved context
+            logRetrievedContext(query, result);
             
             return result;
         } catch (Exception e) {
             logger.error("Error searching knowledge base: {}", e.getMessage(), e);
             return "Error: " + e.getMessage();
         }
+    }
+    
+    /**
+     * Enhanced logging of retrieved context
+     */
+    private void logRetrievedContext(String query, String result) {
+        // Log a preview of the retrieved context
+        String preview = result.length() > 200 ? result.substring(0, 200) + "..." : result;
+        logger.info("Retrieved context for query [{}]: {}", query, preview);
+        
+        // Log the full content with clear boundaries for better visibility
+        logger.info("==========BEGIN FULL CONTEXT==========");
+        
+        // Split and log by paragraphs for better readability
+        String[] paragraphs = result.split("\\n\\n");
+        for (int i = 0; i < paragraphs.length; i++) {
+            logger.info("PARAGRAPH {}: {}", i+1, paragraphs[i].replaceAll("\\n", " "));
+        }
+        
+        logger.info("==========END FULL CONTEXT==========");
+        
+        // Log statistics about the retrieved content
+        int charCount = result.length();
+        int wordCount = result.split("\\s+").length;
+        int paragraphCount = paragraphs.length;
+        
+        logger.info("Context statistics - Characters: {}, Words: {}, Paragraphs: {}", 
+                charCount, wordCount, paragraphCount);
     }
     
     /**
@@ -154,6 +181,8 @@ public class KnowledgeBaseService {
                 // Store the retrieved context
                 synchronized(this) {
                     this.lastRetrievedContext = result;
+                    // Log the context
+                    logRetrievedContext(query, result);
                 }
                 
                 return result;

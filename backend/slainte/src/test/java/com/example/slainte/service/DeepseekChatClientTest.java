@@ -1,178 +1,214 @@
 package com.example.slainte.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class DeepseekChatClientTest {
 
-    @Spy
-    private ObjectMapper objectMapper = new ObjectMapper();
-
-    private WebClient.Builder webClientBuilder;
+    @Mock
+    private WebClient webClientMock;
+    
+    @Mock
+    private WebClient.RequestBodyUriSpec requestBodyUriSpecMock;
+    
+    @Mock
+    private WebClient.RequestBodySpec requestBodySpecMock;
+    
+    @Mock
+    private WebClient.ResponseSpec responseSpecMock;
+    
+    private WebClient.Builder webClientBuilderMock;
+    
     private DeepseekChatClient deepseekChatClient;
-
+    private ObjectMapper objectMapper = new ObjectMapper();
+    
     @BeforeEach
     public void setup() {
-        // Create mock WebClient.Builder
-        webClientBuilder = mock(WebClient.Builder.class);
+        // Create a manual mock for WebClient.Builder
+        webClientBuilderMock = mock(WebClient.Builder.class);
         
-        // Create mock WebClient
-        WebClient webClientMock = mock(WebClient.class);
+        // Setup WebClient mock chain
+        doReturn(webClientBuilderMock).when(webClientBuilderMock).baseUrl(anyString());
+        doReturn(webClientMock).when(webClientBuilderMock).build();
+        doReturn(requestBodyUriSpecMock).when(webClientMock).post();
+        doReturn(requestBodySpecMock).when(requestBodyUriSpecMock).bodyValue(any());
+        doReturn(responseSpecMock).when(requestBodySpecMock).retrieve();
         
-        // Setup builder to return the WebClient
-        when(webClientBuilder.baseUrl(anyString())).thenReturn(webClientBuilder);
-        when(webClientBuilder.build()).thenReturn(webClientMock);
-        
-        // Use a more direct approach for the WebClient post chain
-        // Instead of mocking the intermediate objects, we'll go straight to the response
-        WebClient.RequestBodyUriSpec requestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
-        when(webClientMock.post()).thenReturn(requestBodyUriSpec);
-        
-        // Use a workaround for the bodyValue() method
-        // Instead of trying to return a RequestBodySpec, we'll handle the next steps directly
-        doReturn(requestBodyUriSpec).when(requestBodyUriSpec).bodyValue(any());
-        
-        // Mock the retrieve() method to return a ResponseSpec
-        WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
-        doReturn(responseSpec).when(requestBodyUriSpec).retrieve();
-        
-        // Setup service with mocked WebClient.Builder
-        deepseekChatClient = new DeepseekChatClient(webClientBuilder);
+        deepseekChatClient = new DeepseekChatClient(webClientBuilderMock);
     }
-
+    
     @Test
-    public void testPrompt_Success() throws Exception {
-        // Setup WebClient and response
-        WebClient webClientMock = webClientBuilder.build();
-        WebClient.RequestBodyUriSpec requestBodyUriSpec = webClientMock.post();
+    public void testPromptSuccess() {
+        // Prepare test data
+        String inputText = "Tell me about health services";
         
-        // Create a successful response
-        String expectedResponse = "This is a test response";
-        ObjectNode mockResponseNode = objectMapper.createObjectNode();
-        mockResponseNode.put("response", expectedResponse);
-        String mockJsonResponse = objectMapper.writeValueAsString(mockResponseNode);
+        // Prepare mock response
+        ObjectNode responseNode = objectMapper.createObjectNode();
+        responseNode.put("response", "Here's information about health services");
+        String responseJson = responseNode.toString();
         
-        // Setup the response mono
-        WebClient.ResponseSpec responseSpec = requestBodyUriSpec.retrieve();
-        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(mockJsonResponse));
-
-        // Execute
-        String result = deepseekChatClient.prompt("test query");
-
-        // Verify
-        assertEquals(expectedResponse, result);
+        when(responseSpecMock.bodyToMono(String.class)).thenReturn(Mono.just(responseJson));
+        
+        // Execute test
+        String result = deepseekChatClient.prompt(inputText);
+        
+        // Verify result
+        assertEquals("Here's information about health services", result);
+        
+        // Verify the request was made with correct parameters
+        verify(requestBodyUriSpecMock).bodyValue(argThat(req -> {
+            if (req instanceof Map) {
+                Map<String, Object> requestMap = (Map<String, Object>) req;
+                return "deepseek-r1:1.5b".equals(requestMap.get("model")) &&
+                       requestMap.get("prompt").toString().contains(inputText);
+            }
+            return false;
+        }));
     }
-
+    
     @Test
-    public void testPrompt_ErrorInRequest() throws Exception {
-        // Setup WebClient and response
-        WebClient webClientMock = webClientBuilder.build();
-        WebClient.RequestBodyUriSpec requestBodyUriSpec = webClientMock.post();
-        WebClient.ResponseSpec responseSpec = requestBodyUriSpec.retrieve();
+    public void testPromptWithInvalidResponse() {
+        // Prepare test data
+        String inputText = "Tell me about health services";
         
-        // Setup error response
-        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.error(new RuntimeException("API Error")));
-
-        // Execute
-        String result = deepseekChatClient.prompt("test query");
-
-        // Verify
-        assertTrue(result.startsWith("Error retrieving response:"));
-    }
-
-    @Test
-    public void testPrompt_MalformedResponse() throws Exception {
-        // Setup WebClient and response
-        WebClient webClientMock = webClientBuilder.build();
-        WebClient.RequestBodyUriSpec requestBodyUriSpec = webClientMock.post();
-        WebClient.ResponseSpec responseSpec = requestBodyUriSpec.retrieve();
+        // Prepare invalid mock response (missing 'response' field)
+        ObjectNode responseNode = objectMapper.createObjectNode();
+        responseNode.put("wrongField", "This won't be extracted");
+        String responseJson = responseNode.toString();
         
-        // Setup malformed response
-        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just("{invalid-json}"));
-
-        // Execute
-        String result = deepseekChatClient.prompt("test query");
-
-        // Verify
-        assertTrue(result.startsWith("Error parsing AI response:"));
-    }
-
-    @Test
-    public void testPrompt_MissingResponseField() throws Exception {
-        // Setup WebClient and response
-        WebClient webClientMock = webClientBuilder.build();
-        WebClient.RequestBodyUriSpec requestBodyUriSpec = webClientMock.post();
-        WebClient.ResponseSpec responseSpec = requestBodyUriSpec.retrieve();
+        when(responseSpecMock.bodyToMono(String.class)).thenReturn(Mono.just(responseJson));
         
-        // JSON without 'response' field
-        ObjectNode mockResponseNode = objectMapper.createObjectNode();
-        mockResponseNode.put("other_field", "value");
-        String mockJsonResponse = objectMapper.writeValueAsString(mockResponseNode);
+        // Execute test
+        String result = deepseekChatClient.prompt(inputText);
         
-        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(mockJsonResponse));
-
-        // Execute
-        String result = deepseekChatClient.prompt("test query");
-
-        // Verify
+        // Verify result
         assertEquals("No response from AI.", result);
     }
-
+    
     @Test
-    public void testPromptAsync_Success() throws Exception {
-        // Setup WebClient and response
-        WebClient webClientMock = webClientBuilder.build();
-        WebClient.RequestBodyUriSpec requestBodyUriSpec = webClientMock.post();
-        WebClient.ResponseSpec responseSpec = requestBodyUriSpec.retrieve();
+    public void testPromptWithError() {
+        // Prepare test data
+        String inputText = "Tell me about health services";
         
-        // Create a successful response
-        String expectedResponse = "This is a test response";
-        ObjectNode mockResponseNode = objectMapper.createObjectNode();
-        mockResponseNode.put("response", expectedResponse);
-        String mockJsonResponse = objectMapper.writeValueAsString(mockResponseNode);
+        // Configure mock to throw an exception
+        when(responseSpecMock.bodyToMono(String.class))
+            .thenReturn(Mono.error(new RuntimeException("API connection error")));
         
-        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(mockJsonResponse));
-
-        // Execute
-        String result = deepseekChatClient.promptAsync("test query").block();
-
-        // Verify
-        assertEquals(expectedResponse, result);
+        // Execute test
+        String result = deepseekChatClient.prompt(inputText);
+        
+        // Verify result
+        assertTrue(result.contains("Error retrieving response"));
+        assertTrue(result.contains("API connection error"));
     }
-
+    
     @Test
-    public void testPromptAsync_Error() throws Exception {
-        // Setup WebClient and response
-        WebClient webClientMock = webClientBuilder.build();
-        WebClient.RequestBodyUriSpec requestBodyUriSpec = webClientMock.post();
-        WebClient.ResponseSpec responseSpec = requestBodyUriSpec.retrieve();
+    public void testPromptAsync() {
+        // Prepare test data
+        String inputText = "Tell me about health services";
         
-        // Setup error response
-        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.error(new RuntimeException("API Error")));
-
-        // Execute
-        String result = deepseekChatClient.promptAsync("test query").block();
-
-        // Verify
-        assertTrue(result.startsWith("Error retrieving response:"));
+        // Prepare mock response
+        ObjectNode responseNode = objectMapper.createObjectNode();
+        responseNode.put("response", "Here's information about health services");
+        String responseJson = responseNode.toString();
+        
+        when(responseSpecMock.bodyToMono(String.class)).thenReturn(Mono.just(responseJson));
+        
+        // Execute test
+        String result = deepseekChatClient.promptAsync(inputText).block();
+        
+        // Verify result
+        assertEquals("Here's information about health services", result);
+        
+        // Verify the request was made with correct parameters
+        verify(requestBodyUriSpecMock).bodyValue(argThat(req -> {
+            if (req instanceof Map) {
+                Map<String, Object> requestMap = (Map<String, Object>) req;
+                return "deepseek-r1:7b".equals(requestMap.get("model")) &&
+                       requestMap.get("prompt").toString().contains(inputText);
+            }
+            return false;
+        }));
+    }
+    
+    @Test
+    public void testPromptAsyncWithError() {
+        // Prepare test data
+        String inputText = "Tell me about health services";
+        
+        // Configure mock to throw an exception
+        when(responseSpecMock.bodyToMono(String.class))
+            .thenReturn(Mono.error(new RuntimeException("API connection error")));
+        
+        // Execute test
+        String result = deepseekChatClient.promptAsync(inputText).block();
+        
+        // Verify result
+        assertTrue(result.contains("Error retrieving response"));
+        assertTrue(result.contains("API connection error"));
+    }
+    
+    // Testing the private extractResponse method separately
+    // without using the WebClient mocks (which caused the UnnecessaryStubbingException)
+    @Test
+    public void testExtractResponse() throws Exception {
+        // We use a new instance that doesn't have the WebClient mocks
+        DeepseekChatClient client = new DeepseekChatClient(WebClient.builder());
+        
+        // Access the private method using reflection
+        java.lang.reflect.Method extractResponseMethod = 
+            DeepseekChatClient.class.getDeclaredMethod("extractResponse", String.class);
+        extractResponseMethod.setAccessible(true);
+        
+        // Prepare test data
+        ObjectNode responseNode = objectMapper.createObjectNode();
+        responseNode.put("response", "Extracted response text");
+        String responseJson = responseNode.toString();
+        
+        // Execute test by invoking the private method
+        String result = (String) extractResponseMethod.invoke(client, responseJson);
+        
+        // Verify result
+        assertEquals("Extracted response text", result);
+    }
+    
+    @Test
+    public void testExtractResponseWithError() throws Exception {
+        // We use a new instance that doesn't have the WebClient mocks
+        DeepseekChatClient client = new DeepseekChatClient(WebClient.builder());
+        
+        // Access the private method using reflection
+        java.lang.reflect.Method extractResponseMethod = 
+            DeepseekChatClient.class.getDeclaredMethod("extractResponse", String.class);
+        extractResponseMethod.setAccessible(true);
+        
+        // Prepare invalid JSON
+        String invalidJson = "{not valid json}";
+        
+        // Execute test by invoking the private method
+        String result = (String) extractResponseMethod.invoke(client, invalidJson);
+        
+        // Verify result
+        assertTrue(result.contains("Error parsing AI response"));
     }
 }

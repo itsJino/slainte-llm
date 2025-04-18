@@ -7,198 +7,288 @@ import com.example.slainte.service.KnowledgeBaseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class DeepseekControllerTest {
 
-    private static final String USER_MESSAGE = "Hello, how are you?";
-    private static final String AI_RESPONSE = "I'm doing well, thank you!";
-    private static final String RETRIEVED_CONTEXT = "Important context information";
-
     @Mock
-    private DeepseekChatClient chatClient;
-
+    private DeepseekChatClient chatClientMock;
+    
     @Mock
-    private KnowledgeBaseService knowledgeBaseService;
-
-    @InjectMocks
+    private KnowledgeBaseService knowledgeBaseServiceMock;
+    
     private DeepseekController deepseekController;
-
-    private ChatRequest chatRequest;
-
+    
     @BeforeEach
     public void setup() {
-        // Create a fresh list of messages for each test
+        deepseekController = new DeepseekController(chatClientMock, knowledgeBaseServiceMock);
+    }
+    
+    @Test
+    public void testChatWithContextUsingRAG() {
+        // Prepare test data
+        ChatRequest request = new ChatRequest();
+        request.setUseRag(true);
+        
         List<Message> messages = new ArrayList<>();
-        messages.add(new Message("user", USER_MESSAGE));
+        Message userMessage = new Message();
+        userMessage.setRole("user");
+        userMessage.setContent("Tell me about GP Visit Cards");
+        messages.add(userMessage);
+        request.setMessages(messages);
         
-        // Create a fresh chat request for each test
-        chatRequest = new ChatRequest();
-        chatRequest.setMessages(messages);
-        chatRequest.setUseRag(true);
-    }
-
-    @Test
-    public void testChatWithContext_WithRAG() {
-        // Setup
-        String expectedPrompt = "Context information:\n" + RETRIEVED_CONTEXT + "\n\n" + USER_MESSAGE;
+        // Configure mocks
+        when(knowledgeBaseServiceMock.search("Tell me about GP Visit Cards"))
+            .thenReturn("GP Visit Card information from knowledge base");
         
-        when(knowledgeBaseService.search(USER_MESSAGE)).thenReturn(RETRIEVED_CONTEXT);
-        when(chatClient.prompt(expectedPrompt)).thenReturn(AI_RESPONSE);
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(chatRequest);
-
-        // Verify
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(AI_RESPONSE, response.getBody());
+        // The formatted prompt would contain both the context and the user query
+        String formattedPrompt = "### HSE INFORMATION ON GP VISIT CARDS ###\n\n" +
+                               "GP Visit Card information from knowledge base\n\n" +
+                               "### END OF HSE INFORMATION ###\n\n" +
+                               "Using ONLY the HSE information provided above, " +
+                               "please answer the following query about GP Visit Cards: " +
+                               "Tell me about GP Visit Cards";
         
-        verify(knowledgeBaseService).search(USER_MESSAGE);
-        verify(chatClient).prompt(expectedPrompt);
-    }
-
-    @Test
-    public void testChatWithContext_WithoutRAG() {
-        // Setup - explicitly disable RAG
-        chatRequest.setUseRag(false);
+        when(chatClientMock.prompt(formattedPrompt))
+            .thenReturn("AI response about GP Visit Cards");
         
-        when(chatClient.prompt(USER_MESSAGE)).thenReturn(AI_RESPONSE);
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(chatRequest);
-
-        // Verify
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(AI_RESPONSE, response.getBody());
+        // Execute test
+        ResponseEntity<String> responseEntity = deepseekController.chatWithContext(request);
         
-        // Should not call search when RAG is disabled
-        verify(knowledgeBaseService, never()).search(anyString());
-        verify(chatClient).prompt(USER_MESSAGE);
-    }
-
-    @Test
-    public void testChatWithContext_SymptomAssessment() {
-        // Setup - create a new request with symptom assessment system message
-        List<Message> assessmentMessages = new ArrayList<>();
-        assessmentMessages.add(new Message("system", "start assessment for the user"));
-        assessmentMessages.add(new Message("user", "I have a headache"));
+        // Verify result
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("AI response about GP Visit Cards", responseEntity.getBody());
         
-        ChatRequest assessmentRequest = new ChatRequest();
-        assessmentRequest.setMessages(assessmentMessages);
-        assessmentRequest.setUseRag(true); // Even though RAG is enabled, system message should override
-        
-        when(chatClient.prompt("I have a headache")).thenReturn("Let me help with your headache");
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(assessmentRequest);
-
-        // Verify
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Let me help with your headache", response.getBody());
-        
-        // Should not call search due to symptom assessment detection
-        verify(knowledgeBaseService, never()).search(anyString());
-        verify(chatClient).prompt("I have a headache");
-    }
-
-    @Test
-    public void testChatWithContext_EmptyMessages_FallbackToPrompt() {
-        // Setup - request with no messages but with a prompt
-        ChatRequest requestWithPrompt = new ChatRequest();
-        requestWithPrompt.setPrompt(USER_MESSAGE);
-        requestWithPrompt.setMessages(null); // No messages
-        requestWithPrompt.setUseRag(true);
-        
-        when(knowledgeBaseService.search(USER_MESSAGE)).thenReturn(RETRIEVED_CONTEXT);
-        String expectedPrompt = "Context information:\n" + RETRIEVED_CONTEXT + "\n\n" + USER_MESSAGE;
-        when(chatClient.prompt(expectedPrompt)).thenReturn(AI_RESPONSE);
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(requestWithPrompt);
-
-        // Verify
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(AI_RESPONSE, response.getBody());
-        verify(knowledgeBaseService).search(USER_MESSAGE);
-        verify(chatClient).prompt(expectedPrompt);
+        // Verify mock interactions
+        verify(knowledgeBaseServiceMock).search("Tell me about GP Visit Cards");
+        verify(chatClientMock).prompt(formattedPrompt);
     }
     
     @Test
-    public void testChatWithContext_EmptyUserMessages() {
-        // Setup - request with only system messages (no user messages)
-        List<Message> systemMessages = new ArrayList<>();
-        systemMessages.add(new Message("system", "System instruction"));
+    public void testChatWithContextWithoutRAG() {
+        // Prepare test data
+        ChatRequest request = new ChatRequest();
+        request.setUseRag(false);
         
-        ChatRequest systemOnlyRequest = new ChatRequest();
-        systemOnlyRequest.setMessages(systemMessages);
-        systemOnlyRequest.setUseRag(true);
-        systemOnlyRequest.setPrompt(USER_MESSAGE); // Fallback prompt
+        List<Message> messages = new ArrayList<>();
+        Message userMessage = new Message();
+        userMessage.setRole("user");
+        userMessage.setContent("Tell me about GP Visit Cards");
+        messages.add(userMessage);
+        request.setMessages(messages);
         
-        when(knowledgeBaseService.search(USER_MESSAGE)).thenReturn(RETRIEVED_CONTEXT);
-        String expectedPrompt = "Context information:\n" + RETRIEVED_CONTEXT + "\n\n" + USER_MESSAGE;
-        when(chatClient.prompt(expectedPrompt)).thenReturn(AI_RESPONSE);
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(systemOnlyRequest);
-
-        // Verify
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(AI_RESPONSE, response.getBody());
-    }
-
-    @Test
-    public void testChatWithContext_ErrorCase() {
-        // Setup - simulate an exception during processing
-        when(knowledgeBaseService.search(USER_MESSAGE))
-            .thenThrow(new RuntimeException("Test exception"));
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(chatRequest);
-
-        // Verify
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(response.getBody().startsWith("Error:"));
+        // Configure mocks
+        when(chatClientMock.prompt("Tell me about GP Visit Cards"))
+            .thenReturn("AI response about GP Visit Cards without context");
+        
+        // Execute test
+        ResponseEntity<String> responseEntity = deepseekController.chatWithContext(request);
+        
+        // Verify result
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("AI response about GP Visit Cards without context", responseEntity.getBody());
+        
+        // Verify mock interactions - should not call knowledge base service
+        verifyNoInteractions(knowledgeBaseServiceMock);
+        verify(chatClientMock).prompt("Tell me about GP Visit Cards");
     }
     
     @Test
-    public void testChatWithContext_EmptyContext() {
-        // Setup - knowledge base returns empty context
-        when(knowledgeBaseService.search(USER_MESSAGE)).thenReturn("");
-        when(chatClient.prompt(USER_MESSAGE)).thenReturn(AI_RESPONSE);
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(chatRequest);
-
-        // Verify - should still work without context
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(AI_RESPONSE, response.getBody());
-        verify(chatClient).prompt(USER_MESSAGE); // Should not include context in prompt
+    public void testStartingAssessmentFlow() {
+        // Prepare test data for assessment flow
+        ChatRequest request = new ChatRequest();
+        // Default is useRag=true, but for assessment it should force useRag=false
+        request.setUseRag(true);
+        
+        List<Message> messages = new ArrayList<>();
+        
+        // System message to trigger assessment mode
+        Message systemMessage = new Message();
+        systemMessage.setRole("system");
+        systemMessage.setContent("start assessment symptom checker");
+        messages.add(systemMessage);
+        
+        // User message
+        Message userMessage = new Message();
+        userMessage.setRole("user");
+        userMessage.setContent("I have a headache");
+        messages.add(userMessage);
+        
+        request.setMessages(messages);
+        
+        // Configure mocks
+        when(chatClientMock.prompt("I have a headache"))
+            .thenReturn("AI assessment response for headache");
+        
+        // Execute test
+        ResponseEntity<String> responseEntity = deepseekController.chatWithContext(request);
+        
+        // Verify result
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("AI assessment response for headache", responseEntity.getBody());
+        
+        // Verify mock interactions - should not call knowledge base service
+        verifyNoInteractions(knowledgeBaseServiceMock);
+        verify(chatClientMock).prompt("I have a headache");
     }
     
     @Test
-    public void testChatWithContext_NoRelevantResults() {
-        // Setup - knowledge base returns "No results found"
-        when(knowledgeBaseService.search(USER_MESSAGE)).thenReturn("No results found.");
-        when(chatClient.prompt(USER_MESSAGE)).thenReturn(AI_RESPONSE);
-
-        // Execute
-        ResponseEntity<String> response = deepseekController.chatWithContext(chatRequest);
-
-        // Verify - should still work without results
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(AI_RESPONSE, response.getBody());
-        verify(chatClient).prompt(USER_MESSAGE); // Should not include the "No results found" in prompt
+    public void testSpecificGPVisitCardQuery() {
+        // Prepare test data
+        ChatRequest request = new ChatRequest();
+        request.setUseRag(true);
+        
+        List<Message> messages = new ArrayList<>();
+        Message userMessage = new Message();
+        userMessage.setRole("user");
+        userMessage.setContent("How do I get a GP visit card?");
+        messages.add(userMessage);
+        request.setMessages(messages);
+        
+        // Configure mocks - should use specialized query
+        when(knowledgeBaseServiceMock.search("Information on GP Visit Card eligibility and application process"))
+            .thenReturn("Specialized GP Visit Card information");
+        
+        String formattedPrompt = "### HSE INFORMATION ON GP VISIT CARDS ###\n\n" +
+                               "Specialized GP Visit Card information\n\n" +
+                               "### END OF HSE INFORMATION ###\n\n" +
+                               "Using ONLY the HSE information provided above, " +
+                               "please answer the following query about GP Visit Cards: " +
+                               "How do I get a GP visit card?";
+        
+        when(chatClientMock.prompt(formattedPrompt))
+            .thenReturn("AI response about getting a GP Visit Card");
+        
+        // Execute test
+        ResponseEntity<String> responseEntity = deepseekController.chatWithContext(request);
+        
+        // Verify result
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("AI response about getting a GP Visit Card", responseEntity.getBody());
+        
+        // Verify mock interactions - should use specialized query
+        verify(knowledgeBaseServiceMock).search("Information on GP Visit Card eligibility and application process");
+        verify(chatClientMock).prompt(formattedPrompt);
+    }
+    
+    @Test
+    public void testFallbackSearchOnInsufficientContext() {
+        // Prepare test data
+        ChatRequest request = new ChatRequest();
+        request.setUseRag(true);
+        
+        List<Message> messages = new ArrayList<>();
+        Message userMessage = new Message();
+        userMessage.setRole("user");
+        userMessage.setContent("Tell me about GP Visit Cards");
+        messages.add(userMessage);
+        request.setMessages(messages);
+        
+        // Configure mocks - first search returns insufficient context
+        when(knowledgeBaseServiceMock.search("Tell me about GP Visit Cards"))
+            .thenReturn("Short"); // Too short, should trigger fallback
+        
+        when(knowledgeBaseServiceMock.search("GP Visit Card information HSE"))
+            .thenReturn("Fallback GP Visit Card information from HSE knowledge base");
+        
+        String formattedPrompt = "### HSE INFORMATION ON GP VISIT CARDS ###\n\n" +
+                               "Fallback GP Visit Card information from HSE knowledge base\n\n" +
+                               "### END OF HSE INFORMATION ###\n\n" +
+                               "Using ONLY the HSE information provided above, " +
+                               "please answer the following query about GP Visit Cards: " +
+                               "Tell me about GP Visit Cards";
+        
+        when(chatClientMock.prompt(formattedPrompt))
+            .thenReturn("AI response with fallback information");
+        
+        // Execute test
+        ResponseEntity<String> responseEntity = deepseekController.chatWithContext(request);
+        
+        // Verify result
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("AI response with fallback information", responseEntity.getBody());
+        
+        // Verify mock interactions - should try original query then fallback
+        verify(knowledgeBaseServiceMock).search("Tell me about GP Visit Cards");
+        verify(knowledgeBaseServiceMock).search("GP Visit Card information HSE");
+        verify(chatClientMock).prompt(formattedPrompt);
+    }
+    
+    @Test
+    public void testHandlingException() {
+        // Prepare test data
+        ChatRequest request = new ChatRequest();
+        request.setUseRag(true);
+        
+        List<Message> messages = new ArrayList<>();
+        Message userMessage = new Message();
+        userMessage.setRole("user");
+        userMessage.setContent("Tell me about GP Visit Cards");
+        messages.add(userMessage);
+        request.setMessages(messages);
+        
+        // Configure mocks to throw exception
+        when(knowledgeBaseServiceMock.search("Tell me about GP Visit Cards"))
+            .thenThrow(new RuntimeException("Knowledge base error"));
+        
+        // Execute test
+        ResponseEntity<String> responseEntity = deepseekController.chatWithContext(request);
+        
+        // Verify result
+        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+        assertTrue(responseEntity.getBody().contains("Error: Knowledge base error"));
+        
+        // Verify mock interactions
+        verify(knowledgeBaseServiceMock).search("Tell me about GP Visit Cards");
+        verifyNoInteractions(chatClientMock);
+    }
+    
+    @Test
+    public void testDebugEndpoint() {
+        // Prepare test data
+        ChatRequest request = new ChatRequest();
+        request.setUseRag(true);
+        
+        List<Message> messages = new ArrayList<>();
+        Message userMessage = new Message();
+        userMessage.setRole("user");
+        userMessage.setContent("Tell me about GP Visit Cards");
+        messages.add(userMessage);
+        request.setMessages(messages);
+        
+        // Configure mocks
+        when(knowledgeBaseServiceMock.search("Tell me about GP Visit Cards"))
+            .thenReturn("GP Visit Card information from knowledge base");
+        
+        // Execute test
+        ResponseEntity<Map<String, Object>> responseEntity = deepseekController.debugChat(request);
+        
+        // Verify result
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertNotNull(responseEntity.getBody());
+        
+        Map<String, Object> responseBody = responseEntity.getBody();
+        assertEquals("Tell me about GP Visit Cards", responseBody.get("userMessage"));
+        assertEquals(true, responseBody.get("useRag"));
+        assertEquals("GP Visit Card information from knowledge base", responseBody.get("retrievedContext"));
+        assertEquals("GP Visit Card information from knowledge base", responseBody.get("finalContext"));
+        
+        // The finalPrompt should contain both context and user message
+        String finalPrompt = (String) responseBody.get("finalPrompt");
+        assertTrue(finalPrompt.contains("GP Visit Card information from knowledge base"));
+        assertTrue(finalPrompt.contains("Tell me about GP Visit Cards"));
+        
+        // Verify mock interactions
+        verify(knowledgeBaseServiceMock).search("Tell me about GP Visit Cards");
     }
 }

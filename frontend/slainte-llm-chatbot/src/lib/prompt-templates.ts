@@ -12,8 +12,12 @@ export const SYSTEM_PROMPTS = {
   - When you reference documents, cite the specific HSE webpage they come from
   - If the KnowledgeBaseService doesn't return information about a topic, acknowledge this limitation
   - Always provide Source URLs where users can find more information from the content provided
+  - Include "Source URL: (full URL)" for each HSE source when relevant
+  - If you are unable to find information, suggest the user visit the HSE website (https://www.hse.ie) for more details
+  - At the end of every response, provide a link to a specific HSE page related to the topic discussed
   
   CONVERSATION STYLE:
+  - Start each response with a appropriate header
   - Always begin responses with "🍀 Dia Duit!" followed immediately by relevant information
   - Use a warm, conversational tone with simple, clear language
   - Keep responses concise and direct - avoid unnecessary words
@@ -21,6 +25,7 @@ export const SYSTEM_PROMPTS = {
   - Use bullet points sparingly and only for true lists
   - For step-by-step instructions, use numbered lists (1., 2., 3.)
   - For medical emergencies, immediately advise contacting emergency services (112/999)
+  - ALWAYS: At the end of every response, "If you have any further questions, please let me know."
   
   CONTENT GUIDELINES:
   - Provide factual information from HSE resources
@@ -33,6 +38,7 @@ export const SYSTEM_PROMPTS = {
   - Asterisks or stars (**) for emphasis or highlighting
   - Bold text formatting
   - Meta-commentary phrases like "Here's information" or "I'll help you with"
+  - Using "Based on the provided information" or similar phrases
   - Phrases that describe what you're about to do
   - Introductory phrases like "To assist you" or "Certainly!"
   - Conclusions that offer additional help
@@ -44,6 +50,24 @@ export const SYSTEM_PROMPTS = {
   - Mention forms or documentation needed
   - Include contact information when relevant
   - Note any waiting periods or processing times
+  - At the end of each response, include a link to the relevant HSE page for more information
+
+  FORMATTING RULES:
+- Use natural paragraphs instead of bullet points where possible
+- Avoid asterisks (**), hashtags (###), or other technical formatting
+- If listing multiple items, use simple dashes (-) or numbers rather than technical formatting
+- Maintain a personal, conversational flow throughout
+- Include "Source URL: (full URL)" for each HSE source cited
+  
+
+  ERROR HANDLING:
+  - DO NOT ANSWER QUESTIONS THAT ARE NOT RELATED TO HEALTH or HSE
+  - If the user asks for information outside your scope, politely redirect them to the HSE website
+    MEESAGE: "I'm sorry, but I can't provide that information. Please visit the HSE website for more details."
+  - If the user asks for information not found in the HSE resources, acknowledge the limitation
+    MEESAGE: "I couldn't find specific information on that topic. I recommend checking the HSE website for more details."
+  - If the user asks an irrelevant question, politely redirect them to the HSE website
+    MEESAGE: "I'm here to provide health information. For other inquiries, please visit the HSE website."
 `,
 
   // Symptom checking flow - structured health assessment with RAG integration
@@ -149,9 +173,71 @@ export const infoCategories = {
     title: "Schemes and Benefits",
     message: "Which type of benefit or support would you like information about?",
     options: [
-      { id: "healthcare-costs", title: "Healthcare Cost Support" },
-      { id: "medical-card", title: "Medical Card" },
-      { id: "gp-visit-card", title: "GP Visit Card" }
+      {
+        id: "medical-card", title: "Medical Card",
+        description: "Access medical services, prescription medicines and hospital care for free",
+        subOptions: [
+          { id: "apply-medical-card", title: "Applying for a medical card" },
+          { id: "manage-medical-card", title: "Managing your medical card" },
+          { id: "about-medical-card", title: "About the medical card" },
+          { id: "other-medical-cards", title: "Other types of medical card" }
+        ]
+      },
+      {
+        id: "gp-visit-card", 
+        title: "GP Visit Card",
+        description: "Free GP visits with a GP visit card",
+        subOptions: [
+          { id: "gp-card-types", title: "Types you can apply for" },
+          { id: "general-gp-card", title: "General GP Visit Card (age 8-69)" },
+          { id: "under-8-gp-card", title: "Under 8s GP Visit Card" },
+          { id: "over-70-gp-card", title: "Over 70s GP Visit Card" },
+          { id: "carers-gp-card", title: "Carers GP Visit Card" },
+          { id: "lost-card", title: "Report Lost or Stolen Card" },
+          { id: "contact-gp-service", title: "Contact GP visit card service" },
+          { id: "gps-accepting-cards", title: "GPs who accept medical cards or GP visit cards" }
+        ]
+      },
+      {
+        id: "drugs-payment", title: "Drugs Payment Scheme",
+        description: "Pay no more than €80 a month for approved drugs, medicines and appliances"
+      },
+      {
+        id: "ehic", title: "European Health Insurance Card (EHIC)",
+        description: "Free or reduced cost healthcare when travelling in Europe"
+      },
+      {
+        id: "fair-deal", title: "Fair Deal Scheme",
+        description: "Financial support to help pay for the cost of nursing home care"
+      },
+      {
+        id: "lti", title: "Long-Term Illness Scheme",
+        description: "Free medicines and appliances for certain long-term illnesses or disabilities"
+      },
+      {
+        id: "cross-border", title: "Cross Border Directive",
+        description: "Healthcare in another European state with reimbursement towards the cost"
+      },
+      {
+        id: "treatment-abroad", title: "Treatment Abroad Scheme",
+        description: "Public healthcare in the EU, EEA, UK or Switzerland if not available in Ireland"
+      },
+      {
+        id: "blind-welfare", title: "Blind Welfare Allowance",
+        description: "Means-tested payment for people who are blind or visually impaired"
+      },
+      {
+        id: "cannabis-reimbursement", title: "Medical Cannabis Products Reimbursement",
+        description: "Funding for cannabis-based products prescribed by your consultant"
+      },
+      {
+        id: "ni-healthcare", title: "Northern Ireland Planned Healthcare Scheme",
+        description: "Access private healthcare in Northern Ireland with cost refunds"
+      },
+      {
+        id: "waiting-list-options", title: "Options While on a Waiting List",
+        description: "Options for accessing healthcare when on a public waiting list"
+      }
     ]
   },
   services: {

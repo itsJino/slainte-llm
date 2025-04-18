@@ -3676,3 +3676,89 @@ ValueError: Collection health_assistant does not exist.
 [32mINFO[0m:     [11-03-2025 15:30:28] 127.0.0.1:58854 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
 [32mINFO[0m:     [11-03-2025 15:51:17] 127.0.0.1:59121 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
 [32mINFO[0m:     [11-03-2025 16:07:25] 127.0.0.1:59297 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [22-03-2025 21:21:02] Shutting down
+[32mINFO[0m:     [22-03-2025 21:21:03] Waiting for application shutdown.
+[36mDEBUG[0m:    [22-03-2025 21:21:03] Stopping component System
+[36mDEBUG[0m:    [22-03-2025 21:21:03] Stopping component SegmentAPI
+[36mDEBUG[0m:    [22-03-2025 21:21:03] Stopping component PersistentLocalHnswSegment
+[36mDEBUG[0m:    [22-03-2025 21:21:03] Stopping component LocalSegmentManager
+[36mDEBUG[0m:    [22-03-2025 21:21:03] Stopping component Posthog
+[36mDEBUG[0m:    [22-03-2025 21:21:03] Stopping component QuotaEnforcer
+[36mDEBUG[0m:    [22-03-2025 21:21:03] Stopping component SqliteDB
+[36mDEBUG[0m:    [22-03-2025 21:21:04] Stopping component OpenTelemetryClient
+[32mINFO[0m:     [22-03-2025 21:21:04] Application shutdown complete.
+[32mINFO[0m:     [22-03-2025 21:21:04] Finished server process [[36m10010[0m]
+[32mINFO[0m:     [25-03-2025 12:34:54] Set chroma_server_nofile to 65535
+[32mINFO[0m:     [25-03-2025 12:34:54] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [25-03-2025 12:34:54] Starting component System
+[36mDEBUG[0m:    [25-03-2025 12:34:54] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [25-03-2025 12:34:54] Starting component SqliteDB
+[36mDEBUG[0m:    [25-03-2025 12:34:54] Starting component QuotaEnforcer
+[36mDEBUG[0m:    [25-03-2025 12:34:54] Starting component Posthog
+[36mDEBUG[0m:    [25-03-2025 12:34:54] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [25-03-2025 12:34:54] Starting component SegmentAPI
+[32mINFO[0m:     [25-03-2025 12:34:54] Started server process [[36m20786[0m]
+[32mINFO[0m:     [25-03-2025 12:34:54] Waiting for application startup.
+[32mINFO[0m:     [25-03-2025 12:34:54] Application startup complete.
+[32mINFO[0m:     [25-03-2025 12:34:54] Uvicorn running on [1mhttp://localhost:8000[0m (Press CTRL+C to quit)
+[36mDEBUG[0m:    [25-03-2025 12:35:20] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [25-03-2025 12:35:20] 127.0.0.1:52030 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 12:37:28] 127.0.0.1:52102 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 12:39:21] Shutting down
+[32mINFO[0m:     [25-03-2025 12:39:21] Waiting for application shutdown.
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component System
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component SegmentAPI
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component PersistentLocalHnswSegment
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component LocalSegmentManager
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component Posthog
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component QuotaEnforcer
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component SqliteDB
+[36mDEBUG[0m:    [25-03-2025 12:39:21] Stopping component OpenTelemetryClient
+[32mINFO[0m:     [25-03-2025 12:39:21] Application shutdown complete.
+[32mINFO[0m:     [25-03-2025 12:39:21] Finished server process [[36m20786[0m]
+[32mINFO[0m:     [25-03-2025 12:39:25] Set chroma_server_nofile to 65535
+[32mINFO[0m:     [25-03-2025 12:39:25] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [25-03-2025 12:39:25] Starting component System
+[36mDEBUG[0m:    [25-03-2025 12:39:25] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [25-03-2025 12:39:25] Starting component SqliteDB
+[36mDEBUG[0m:    [25-03-2025 12:39:25] Starting component QuotaEnforcer
+[36mDEBUG[0m:    [25-03-2025 12:39:25] Starting component Posthog
+[36mDEBUG[0m:    [25-03-2025 12:39:25] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [25-03-2025 12:39:25] Starting component SegmentAPI
+[32mINFO[0m:     [25-03-2025 12:39:25] Started server process [[36m21125[0m]
+[32mINFO[0m:     [25-03-2025 12:39:25] Waiting for application startup.
+[32mINFO[0m:     [25-03-2025 12:39:25] Application startup complete.
+[32mINFO[0m:     [25-03-2025 12:39:25] Uvicorn running on [1mhttp://localhost:8000[0m (Press CTRL+C to quit)
+[36mDEBUG[0m:    [25-03-2025 12:39:55] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [25-03-2025 12:39:56] 127.0.0.1:52177 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 12:48:52] 127.0.0.1:52256 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 12:50:17] 127.0.0.1:52266 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 12:53:21] 127.0.0.1:52366 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 12:57:17] 127.0.0.1:52433 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 12:59:38] 127.0.0.1:52466 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:01:35] 127.0.0.1:52504 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:03:25] 127.0.0.1:52545 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:07:34] 127.0.0.1:52634 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:08:59] 127.0.0.1:52653 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:11:09] 127.0.0.1:52710 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:13:44] 127.0.0.1:52758 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:20:22] 127.0.0.1:52846 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:21:11] 127.0.0.1:52886 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:26:24] 127.0.0.1:52966 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [25-03-2025 13:34:56] 127.0.0.1:53073 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 00:30:06] 127.0.0.1:60604 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 12:25:53] 127.0.0.1:63704 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 12:27:14] 127.0.0.1:63721 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 13:23:27] 127.0.0.1:65088 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 13:40:54] 127.0.0.1:65429 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 13:43:59] 127.0.0.1:65513 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 13:48:02] 127.0.0.1:49204 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 14:19:12] 127.0.0.1:49794 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 14:24:55] 127.0.0.1:49904 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 14:25:42] 127.0.0.1:49919 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [01-04-2025 14:28:36] 127.0.0.1:49999 - "POST /api/v1/collections/66ca948c-7e05-428e-b12b-b9619030733f/query HTTP/1.1" 200
+[32mINFO[0m:     [02-04-2025 20:34:47] ::1:57972 - "GET /api/v1/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [02-04-2025 20:34:47] ::1:57972 - "GET /api/v1/databases/default_database?tenant=default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [02-04-2025 20:34:48] ::1:57973 - "DELETE /api/v1/collections/health_assistant?tenant=default_tenant&database=default_database HTTP/1.1" 200
+[32mINFO[0m:     [02-04-2025 20:34:48] ::1:57973 - "POST /api/v1/collections?tenant=default_tenant&database=default_database HTTP/1.1" 200
+[32mINFO[0m:     [02-04-2025 20:34:48] ::1:57973 - "GET /api/v1/collections/42d6e1ba-b397-469d-9aff-3274c656fa3c/count HTTP/1.1" 200

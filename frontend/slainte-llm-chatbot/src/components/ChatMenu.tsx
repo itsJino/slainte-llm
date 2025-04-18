@@ -31,7 +31,7 @@ const ChatMenu: React.FC<ChatMenuProps> = ({ onSelectOption }) => {
         </div>
         <h2 className="text-3xl font-light mb-4">Welcome</h2>
         <p className="text-xl">
-          Slainte is ready to assist
+          Sláinte is ready to assist
         </p>
       </div>
 

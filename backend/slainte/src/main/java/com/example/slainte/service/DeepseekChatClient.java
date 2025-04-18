@@ -24,7 +24,7 @@ public class DeepseekChatClient {
         this.objectMapper = new ObjectMapper();
     }
 
-    // System prompt defined here (unchanged)
+    // System prompt defined here 
     public final String MAIN_SYSTEM_PROMPT = """
             You are Slainte, a friendly and knowledgeable health assistant.
             // ... existing prompt content ...
@@ -67,7 +67,7 @@ public class DeepseekChatClient {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", "deepseek-r1:7b");
         requestBody.put("prompt", fullPrompt);
-        requestBody.put("temperature", 0.2);
+        requestBody.put("temperature", 0.0);
         requestBody.put("stream", false);
         
         return webClient.post()

@@ -3,7 +3,7 @@ import os
 import glob
 import pdfplumber
 import chromadb
-from sentence_transformers import SentenceTransformer
+import requests
 
 # ✅ Path to your knowledge documents (PDFs)
 DOCS_DIR = os.path.abspath("../documents/HSE_Condition_Pages")
@@ -16,11 +16,19 @@ CHROMADB_PORT = 8000
 chroma_client = chromadb.HttpClient(host=CHROMADB_HOST, port=CHROMADB_PORT)
 collection_name = "health_assistant"
 
-# ✅ Create the collection (no deletion, just ensure it's there)
-collection = chroma_client.get_or_create_collection(name=collection_name)
+# ✅ Ollama API endpoint for embeddings
+OLLAMA_API_URL = "http://localhost:11434/api/embeddings"
 
-# ✅ Load a SentenceTransformer embedding model
-model = SentenceTransformer("multi-qa-mpnet-base-dot-v1")  # ✅ 768-dimensional embeddings
+# Delete the existing collection if it exists and create a new one
+try:
+    chroma_client.delete_collection(name=collection_name)
+    print(f"✅ Deleted existing collection: {collection_name}")
+except Exception as e:
+    print(f"Collection doesn't exist yet or couldn't be deleted: {e}")
+
+# Create a new collection with the same name
+collection = chroma_client.create_collection(name=collection_name)
+print(f"✅ Created new collection: {collection_name}")
 
 def clean_text(text):
     """
@@ -84,10 +92,24 @@ def chunk_text(text, chunk_size=512, overlap=50):
     return chunks
 
 def generate_embedding(text):
-    """Generate embeddings using SentenceTransformer"""
+    """Generate embeddings using Ollama's nomic-embed-text model"""
     if not text.strip():
         return None
-    return model.encode(text).tolist()  # ✅ Convert NumPy array to list
+    
+    try:
+        response = requests.post(
+            OLLAMA_API_URL,
+            json={"model": "nomic-embed-text", "prompt": text}
+        )
+        
+        if response.status_code == 200:
+            return response.json()["embedding"]
+        else:
+            print(f"❌ Error getting embedding: {response.text}")
+            return None
+    except Exception as e:
+        print(f"❌ Error calling Ollama API: {e}")
+        return None
 
 def add_document(text, doc_id):
     """Store document chunks in ChromaDB"""
@@ -136,6 +158,9 @@ def add_document(text, doc_id):
                 documents=[chunk],
                 metadatas=[metadata]
             )
+            print(f"✅ Added chunk {i+1}/{len(chunks)} for {doc_id}")
+        else:
+            print(f"⚠️ Could not generate embedding for chunk {i+1}/{len(chunks)} of {doc_id}")
 
     print(f"✅ Document {doc_id} indexed with {len(chunks)} chunks")
 
@@ -152,9 +177,32 @@ def extract_text_from_pdf(pdf_path):
         print(f"❌ Error extracting text from {pdf_path}: {e}")
     return text.strip()
 
-def load_documents():
-    """Read all PDF files from the knowledge base directory"""
+def load_documents(rebuild=True):
+    """
+    Read all PDF files from the knowledge base directory
+    
+    Args:
+        rebuild (bool): If True, delete and recreate the collection before loading docs
+    """
     print(f"📂 Loading documents from: {DOCS_DIR}")
+    
+    # Test Ollama API connection first
+    try:
+        test_response = requests.post(
+            OLLAMA_API_URL,
+            json={"model": "nomic-embed-text", "prompt": "Test connection"}
+        )
+        if test_response.status_code == 200:
+            embed_size = len(test_response.json()["embedding"])
+            print(f"✅ Ollama API connection successful - embedding dimension: {embed_size}")
+        else:
+            print(f"❌ Ollama API error: {test_response.text}")
+            return
+    except Exception as e:
+        print(f"❌ Could not connect to Ollama API: {e}")
+        print("⚠️ Make sure Ollama is running and nomic-embed-text model is installed")
+        print("⚠️ Run: ollama run nomic-embed-text")
+        return
 
     pdf_files = glob.glob(os.path.join(DOCS_DIR, "*.pdf"))
     if not pdf_files:
@@ -187,6 +235,9 @@ def search_documents(query, top_k=3):
         return "Please provide a search query."
         
     embedding = generate_embedding(query)
+    if not embedding:
+        return "❌ Could not generate embedding for query."
+        
     results = collection.query(query_embeddings=[embedding], n_results=top_k)
 
     print(f"\n🔍 Searching for: {query}")
@@ -223,7 +274,8 @@ def search_documents(query, top_k=3):
 # ✅ Run the script to process documents and test search
 if __name__ == "__main__":
     # 🔄 Load and store documents in ChromaDB
-    load_documents()
+    rebuild = True  # Set to True to delete all existing documents and reindex
+    load_documents(rebuild=rebuild)
 
     # 🔎 Test with a sample query
     test_queries = [

@@ -70,13 +70,11 @@ public class DeepseekController {
             if (useRag) {
                 // Only retrieve information from ChromaDB if useRag is true
                 String userQuery = latestUserMessage.getContent();
+                String topic = extractPrimaryTopic(userQuery);
                 
-                // Check if the query is specifically about GP Visit Cards
-                if (userQuery.toLowerCase().contains("gp visit card")) {
-                    // Use a more specific query for GP Visit Cards
-                    userQuery = "Information on GP Visit Card eligibility and application process";
-                }
+                logger.info("Detected primary topic: {}", topic);
                 
+                // Perform the initial search
                 String retrievedInfo = knowledgeBaseService.search(userQuery);
                 
                 // Check if retrievedInfo contains an error or is too short
@@ -84,24 +82,27 @@ public class DeepseekController {
                     logger.warn("Error or insufficient context retrieved: {}", retrievedInfo);
                     
                     // Try a more general search as fallback
-                    String fallbackQuery = "GP Visit Card information HSE";
+                    String fallbackQuery = topic + " information HSE";
                     logger.info("Trying fallback query: {}", fallbackQuery);
                     retrievedInfo = knowledgeBaseService.search(fallbackQuery);
                     
                     if (retrievedInfo.startsWith("Error:") || retrievedInfo.length() < 50) {
                         logger.warn("Fallback search also failed or insufficient");
-                        retrievedInfo = "No relevant information found about GP Visit Cards in the HSE knowledge base.";
+                        retrievedInfo = "No relevant information found about " + topic + " in the HSE knowledge base.";
+                        logger.info("Using empty context placeholder");
+                    } else {
+                        logger.info("Using fallback context for topic: {}", topic);
                     }
                 }
                 
                 // Format the prompt with retrieved context
-                finalPrompt = formatPromptWithContext(retrievedInfo, latestUserMessage.getContent());
-                logger.info("Using RAG - retrieved context length: {}", retrievedInfo.length());
+                finalPrompt = formatPromptWithContext(retrievedInfo, userQuery, topic);
+                logger.info("Using RAG context with length: {} for topic: {}", retrievedInfo.length(), topic);
                 
-                // Log a preview of the context
-                String contextPreview = retrievedInfo.length() > 200 ? 
-                    retrievedInfo.substring(0, 200) + "..." : retrievedInfo;
-                logger.info("Context preview: {}", contextPreview);
+                // Log the full formatted prompt for debugging
+                logger.debug("==========FULL FORMATTED PROMPT==========");
+                logger.debug(finalPrompt);
+                logger.debug("==========END FORMATTED PROMPT==========");
             } else {
                 // Skip RAG retrieval entirely
                 finalPrompt = latestUserMessage.getContent();
@@ -141,23 +142,22 @@ public class DeepseekController {
                 // Get the context that would be retrieved
                 String userQuery = latestUserMessage.getContent();
                 
-                // Check if the query is specifically about GP Visit Cards
-                if (userQuery.toLowerCase().contains("gp visit card")) {
-                    // Use a more specific query for GP Visit Cards
-                    userQuery = "Information on GP Visit Card eligibility and application process";
-                    result.put("specializedQuery", userQuery);
-                }
+                // Extract primary topic
+                String topic = extractPrimaryTopic(userQuery);
+                result.put("detectedTopic", topic);
                 
                 String retrievedInfo = knowledgeBaseService.search(userQuery);
                 result.put("retrievedContext", retrievedInfo);
+                result.put("retrievedContextLength", retrievedInfo.length());
                 
                 // Check for fallback if needed
                 if (retrievedInfo.startsWith("Error:") || retrievedInfo.length() < 50) {
-                    String fallbackQuery = "GP Visit Card information HSE";
+                    String fallbackQuery = topic + " information HSE";
                     result.put("fallbackQuery", fallbackQuery);
                     
                     String fallbackInfo = knowledgeBaseService.search(fallbackQuery);
                     result.put("fallbackContext", fallbackInfo);
+                    result.put("fallbackContextLength", fallbackInfo.length());
                     
                     // Which context would be used
                     if (fallbackInfo.startsWith("Error:") || fallbackInfo.length() < 50) {
@@ -172,7 +172,8 @@ public class DeepseekController {
                 // Format the final prompt
                 String finalPrompt = formatPromptWithContext(
                     (String)result.get("finalContext"), 
-                    latestUserMessage.getContent()
+                    userQuery, 
+                    topic
                 );
                 result.put("finalPrompt", finalPrompt);
             } else {
@@ -214,22 +215,78 @@ public class DeepseekController {
     }
 
     /**
+     * Extract the primary topic from a user query
+     */
+    private String extractPrimaryTopic(String query) {
+        // This is a simple implementation that could be enhanced with NLP techniques
+        String lowerQuery = query.toLowerCase();
+        
+        // Check for common health topics in HSE context
+        if (lowerQuery.contains("gp visit card")) return "GP Visit Card";
+        if (lowerQuery.contains("medical card")) return "Medical Card";
+        if (lowerQuery.contains("hospital")) return "Hospitals";
+        if (lowerQuery.contains("emergency") || lowerQuery.contains("urgent care")) return "Emergency Services";
+        if (lowerQuery.contains("covid") || lowerQuery.contains("coronavirus")) return "COVID-19";
+        if (lowerQuery.contains("vaccine") || lowerQuery.contains("vaccination")) return "Vaccines";
+        if (lowerQuery.contains("mental health")) return "Mental Health";
+        if (lowerQuery.contains("diabetes")) return "Diabetes";
+        if (lowerQuery.contains("blood pressure") || lowerQuery.contains("hypertension")) return "Blood Pressure";
+        if (lowerQuery.contains("pregnancy") || lowerQuery.contains("maternity")) return "Pregnancy Services";
+        if (lowerQuery.contains("child") || lowerQuery.contains("pediatric")) return "Children's Health";
+        if (lowerQuery.contains("elderly") || lowerQuery.contains("older")) return "Services for Older People";
+        
+        // For queries that don't match specific topics, extract important words
+        // This is a very simple approach - could be improved with NLP
+        String[] words = query.split("\\s+");
+        StringBuilder topic = new StringBuilder();
+        
+        for (String word : words) {
+            // Skip common words and focus on potentially meaningful terms
+            if (word.length() > 3 && !isCommonWord(word)) {
+                if (topic.length() > 0) topic.append(" ");
+                topic.append(word);
+                
+                // Limit topic length
+                if (topic.length() > 30) break;
+            }
+        }
+        
+        return topic.length() > 0 ? topic.toString() : "Health Information";
+    }
+    
+    /**
+     * Check if a word is a common word that's less likely to be a meaningful topic
+     */
+    private boolean isCommonWord(String word) {
+        String[] commonWords = {"about", "with", "this", "that", "what", "when", "where", "which", 
+                               "who", "whom", "whose", "why", "how", "information", "need", "would", 
+                               "could", "should", "tell", "know", "find"};
+        
+        String lowerWord = word.toLowerCase();
+        for (String commonWord : commonWords) {
+            if (lowerWord.equals(commonWord)) return true;
+        }
+        
+        return false;
+    }
+
+    /**
      * Formats the prompt by including relevant retrieved context.
      */
-    private String formatPromptWithContext(String context, String userMessage) {
+    private String formatPromptWithContext(String context, String userMessage, String topic) {
         if (context == null || context.isEmpty() || context.equals("No results found.") || context.startsWith("Error")) {
             return userMessage;
         } else {
             StringBuilder formattedPrompt = new StringBuilder();
             
             // Add a clear separator for the RAG context
-            formattedPrompt.append("### HSE INFORMATION ON GP VISIT CARDS ###\n\n");
+            formattedPrompt.append("### HSE INFORMATION ON ").append(topic.toUpperCase()).append(" ###\n\n");
             formattedPrompt.append(context);
             formattedPrompt.append("\n\n### END OF HSE INFORMATION ###\n\n");
             
             // Add the user's query with clear instructions
             formattedPrompt.append("Using ONLY the HSE information provided above, ");
-            formattedPrompt.append("please answer the following query about GP Visit Cards: ");
+            formattedPrompt.append("please answer the following query: ");
             formattedPrompt.append(userMessage);
             
             return formattedPrompt.toString();

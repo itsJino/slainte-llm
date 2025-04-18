@@ -3,190 +3,256 @@ package com.example.slainte.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ChromaDBServiceTest {
 
     @Mock
-    private RestTemplate restTemplate;
-
-    @InjectMocks
+    private HttpClient httpClientMock;
+    
+    @Mock
+    private HttpResponse<String> httpResponseMock;
+    
     private ChromaDBService chromaDBService;
-
-    private List<Double> testEmbedding;
-
+    private ObjectMapper objectMapper = new ObjectMapper();
+    
     @BeforeEach
-    public void setup() {
-        testEmbedding = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            testEmbedding.add(0.1 * i);
+    public void setup() throws Exception {
+        // Create the service instance
+        chromaDBService = new ChromaDBService();
+        
+        // Use reflection to replace the private httpClient with our mock
+        java.lang.reflect.Field httpClientField = ChromaDBService.class.getDeclaredField("httpClient");
+        httpClientField.setAccessible(true);
+        httpClientField.set(chromaDBService, httpClientMock);
+        
+        // Default setup for mock response
+        when(httpResponseMock.statusCode()).thenReturn(200);
+        
+        // Setup httpClientMock to return our mock response
+        when(httpClientMock.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+            .thenReturn(httpResponseMock);
+    }
+    
+    @Test
+    public void testQueryDatabase_Success() throws Exception {
+        // Prepare test data
+        List<Double> testEmbedding = new ArrayList<>();
+        for (int i = 0; i < 768; i++) {
+            testEmbedding.add(0.1);
         }
-    }
-
-    @Test
-    public void testQueryDatabase_Success() {
-        // Setup mock response from ChromaDB
-        Map<String, Object> responseBody = new HashMap<>();
+        
+        // Prepare mock response data
+        Map<String, Object> responseMap = new HashMap<>();
         List<List<String>> documents = new ArrayList<>();
-        List<String> docList = Arrays.asList("Document 1", "Document 2");
+        List<String> docList = new ArrayList<>();
+        docList.add("Test document content");
         documents.add(docList);
-        responseBody.put("documents", documents);
+        responseMap.put("documents", documents);
         
-        List<List<Double>> distances = new ArrayList<>();
-        List<Double> distList = Arrays.asList(0.1, 0.2);
-        distances.add(distList);
-        responseBody.put("distances", distances);
-
-        ResponseEntity<Map> responseEntity = new ResponseEntity<>(responseBody, HttpStatus.OK);
+        List<List<Map<String, Object>>> metadatas = new ArrayList<>();
+        List<Map<String, Object>> metaList = new ArrayList<>();
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("source", "test_source");
+        metaList.add(metadata);
+        metadatas.add(metaList);
+        responseMap.put("metadatas", metadatas);
         
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).thenReturn(responseEntity);
-
-        // Execute
-        String result = chromaDBService.queryDatabase(testEmbedding, 2);
-
-        // Verify
+        // Configure the mock response
+        when(httpResponseMock.body()).thenReturn(objectMapper.writeValueAsString(responseMap));
+        
+        // Execute the test
+        String result = chromaDBService.queryDatabase(testEmbedding, 3);
+        
+        // Verify results
         assertNotNull(result);
-        assertTrue(result.contains("Document 1"));
-        assertTrue(result.contains("Document 2"));
+        assertTrue(result.contains("Test document content"));
+        assertTrue(result.contains("[Source: test_source]"));
         
-        verify(restTemplate).exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        );
+        // Verify that the HttpClient was called with appropriate parameters
+        verify(httpClientMock).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
-
+    
     @Test
-    public void testQueryDatabase_EmptyResponse() {
-        // Setup empty response
-        Map<String, Object> responseBody = new HashMap<>();
-        ResponseEntity<Map> responseEntity = new ResponseEntity<>(responseBody, HttpStatus.OK);
+    public void testQueryDatabase_EmptyResponse() throws Exception {
+        // Prepare test data
+        List<Double> testEmbedding = new ArrayList<>();
+        for (int i = 0; i < 768; i++) {
+            testEmbedding.add(0.1);
+        }
         
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).thenReturn(responseEntity);
-
-        // Execute
-        String result = chromaDBService.queryDatabase(testEmbedding, 2);
-
-        // Verify
+        // Prepare empty response
+        Map<String, Object> responseMap = new HashMap<>();
+        
+        // Configure the mock response
+        when(httpResponseMock.body()).thenReturn(objectMapper.writeValueAsString(responseMap));
+        
+        // Execute the test
+        String result = chromaDBService.queryDatabase(testEmbedding, 3);
+        
+        // Verify results
         assertEquals("No documents in response.", result);
     }
-
+    
     @Test
-    public void testQueryDatabase_EmptyDocuments() {
-        // Setup response with empty documents
-        Map<String, Object> responseBody = new HashMap<>();
+    public void testQueryDatabase_EmptyDocuments() throws Exception {
+        // Prepare test data
+        List<Double> testEmbedding = new ArrayList<>();
+        for (int i = 0; i < 768; i++) {
+            testEmbedding.add(0.1);
+        }
+        
+        // Prepare response with empty documents
+        Map<String, Object> responseMap = new HashMap<>();
         List<List<String>> documents = new ArrayList<>();
         documents.add(new ArrayList<>()); // Empty document list
-        responseBody.put("documents", documents);
+        responseMap.put("documents", documents);
         
-        ResponseEntity<Map> responseEntity = new ResponseEntity<>(responseBody, HttpStatus.OK);
+        // Configure the mock response
+        when(httpResponseMock.body()).thenReturn(objectMapper.writeValueAsString(responseMap));
         
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).thenReturn(responseEntity);
-
-        // Execute
-        String result = chromaDBService.queryDatabase(testEmbedding, 2);
-
-        // Verify
+        // Execute the test
+        String result = chromaDBService.queryDatabase(testEmbedding, 3);
+        
+        // Verify results
         assertEquals("No documents found.", result);
     }
-
+    
     @Test
-    public void testQueryDatabase_Exception() {
-        // Setup exception being thrown
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
-
-        // Execute
-        String result = chromaDBService.queryDatabase(testEmbedding, 2);
-
-        // Verify
-        assertTrue(result.startsWith("Error querying ChromaDB:"));
+    public void testQueryDatabase_Exception() throws Exception {
+        // Prepare test data
+        List<Double> testEmbedding = new ArrayList<>();
+        for (int i = 0; i < 768; i++) {
+            testEmbedding.add(0.1);
+        }
+        
+        // Configure the mock to throw an exception
+        when(httpClientMock.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+            .thenThrow(new IOException("Connection refused"));
+        
+        // Execute the test
+        String result = chromaDBService.queryDatabase(testEmbedding, 3);
+        
+        // Verify results
+        assertTrue(result.contains("Error querying ChromaDB"));
+        assertTrue(result.contains("Connection refused"));
     }
-
+    
     @Test
-    public void testQueryDatabaseAsync_Success() throws ExecutionException, InterruptedException {
-        // Setup mock response from ChromaDB
-        Map<String, Object> responseBody = new HashMap<>();
+    public void testQueryDatabaseAsync_Success() throws Exception {
+        // Prepare test data
+        List<Double> testEmbedding = new ArrayList<>();
+        for (int i = 0; i < 768; i++) {
+            testEmbedding.add(0.1);
+        }
+        
+        // Prepare mock response data
+        Map<String, Object> responseMap = new HashMap<>();
         List<List<String>> documents = new ArrayList<>();
-        List<String> docList = Arrays.asList("Document 1", "Document 2");
+        List<String> docList = new ArrayList<>();
+        docList.add("Test document content");
         documents.add(docList);
-        responseBody.put("documents", documents);
+        responseMap.put("documents", documents);
         
-        ResponseEntity<Map> responseEntity = new ResponseEntity<>(responseBody, HttpStatus.OK);
+        // Configure the mock response
+        when(httpResponseMock.body()).thenReturn(objectMapper.writeValueAsString(responseMap));
         
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).thenReturn(responseEntity);
-
-        // Execute
-        CompletableFuture<String> futureResult = chromaDBService.queryDatabaseAsync(testEmbedding, 2);
+        // Execute the test
+        CompletableFuture<String> futureResult = chromaDBService.queryDatabaseAsync(testEmbedding, 3);
         String result = futureResult.get(); // Blocks until complete
-
-        // Verify
+        
+        // Verify results
         assertNotNull(result);
-        assertTrue(result.contains("Document 1"));
-        assertTrue(result.contains("Document 2"));
+        assertTrue(result.contains("Test document content"));
     }
-
+    
     @Test
     public void testProcessChromaDBResponse_MalformedResponse() {
-        // Setup malformed response that will cause exception during processing
+        // Create a response body with an invalid format
         Map<String, Object> responseBody = new HashMap<>();
-        responseBody.put("documents", "not a list"); // Wrong type to cause exception
+        responseBody.put("documents", "This should be a list, not a string"); // Wrong type
         
-        ResponseEntity<Map> responseEntity = new ResponseEntity<>(responseBody, HttpStatus.OK);
+        // Use reflection to access the private method
+        try {
+            java.lang.reflect.Method processMethod = ChromaDBService.class.getDeclaredMethod(
+                "processChromaDBResponse", Map.class);
+            processMethod.setAccessible(true);
+            
+            // Execute the method
+            String result = (String) processMethod.invoke(chromaDBService, responseBody);
+            
+            // Verify result
+            assertTrue(result.contains("Error processing search results"));
+        } catch (Exception e) {
+            fail("Test failed due to exception: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testQueryDatabase_ErrorResponse() throws Exception {
+        // Prepare test data
+        List<Double> testEmbedding = new ArrayList<>();
+        for (int i = 0; i < 768; i++) {
+            testEmbedding.add(0.1);
+        }
         
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).thenReturn(responseEntity);
-
-        // Execute
-        String result = chromaDBService.queryDatabase(testEmbedding, 2);
-
-        // Verify
-        assertTrue(result.startsWith("Error processing search results:"));
+        // Configure error response
+        when(httpResponseMock.statusCode()).thenReturn(500);
+        when(httpResponseMock.body()).thenReturn("{\"error\":\"Internal server error\"}");
+        
+        // Execute the test
+        String result = chromaDBService.queryDatabase(testEmbedding, 3);
+        
+        // Verify results
+        assertTrue(result.contains("Error from ChromaDB"));
+    }
+    
+    @Test
+    public void testQueryDatabase_SmallEmbedding() throws Exception {
+        // Prepare test data with smaller than required embedding size
+        List<Double> smallEmbedding = new ArrayList<>();
+        for (int i = 0; i < 500; i++) {
+            smallEmbedding.add(0.1);
+        }
+        
+        // Prepare mock response data
+        Map<String, Object> responseMap = new HashMap<>();
+        List<List<String>> documents = new ArrayList<>();
+        List<String> docList = new ArrayList<>();
+        docList.add("Test document content");
+        documents.add(docList);
+        responseMap.put("documents", documents);
+        
+        // Configure the mock response
+        when(httpResponseMock.body()).thenReturn(objectMapper.writeValueAsString(responseMap));
+        
+        // Execute the test - should pad the embedding
+        String result = chromaDBService.queryDatabase(smallEmbedding, 3);
+        
+        // Verify results
+        assertNotNull(result);
+        assertTrue(result.contains("Test document content"));
+        
+        // Verify HTTP call
+        verify(httpClientMock).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
 }
